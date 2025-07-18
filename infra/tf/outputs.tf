@@ -73,3 +73,24 @@ output "kubeconfig_command" {
   description = "Command to get kubeconfig for the AKS cluster (requires Azure AD authentication)"
   value       = "az aks get-credentials --resource-group ${azurerm_resource_group.main.name} --name ${module.aks.cluster_name}"
 }
+
+output "admin_group_object_ids" {
+  description = "Object IDs of Azure AD groups with admin access to the cluster"
+  value       = var.admin_group_object_ids
+}
+
+output "current_user_principal_id" {
+  description = "Principal ID of the current user (automatically granted cluster admin access)"
+  value       = data.azurerm_client_config.current.object_id
+}
+
+output "cluster_access_info" {
+  description = "Information about cluster access configuration"
+  value = {
+    azure_ad_integration = "enabled"
+    azure_rbac_enabled   = var.enable_azure_rbac
+    local_accounts       = "disabled"
+    admin_groups_count   = length(var.admin_group_object_ids)
+    current_user_access  = "admin (automatic)"
+  }
+}

@@ -81,3 +81,16 @@ variable "enable_oidc_issuer" {
   type        = bool
   default     = true
 }
+
+variable "admin_group_object_ids" {
+  description = "Object IDs of Azure AD groups that should have admin access to the AKS cluster"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = can([
+      for id in var.admin_group_object_ids : regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", id)
+    ])
+    error_message = "Admin group object IDs must be valid UUIDs."
+  }
+}

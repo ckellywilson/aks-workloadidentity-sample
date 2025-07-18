@@ -31,8 +31,9 @@ resource "azurerm_kubernetes_cluster" "main" {
 
   # Azure Active Directory integration with Azure RBAC
   azure_active_directory_role_based_access_control {
-    tenant_id          = data.azurerm_client_config.current.tenant_id
-    azure_rbac_enabled = var.enable_azure_rbac
+    tenant_id              = data.azurerm_client_config.current.tenant_id
+    azure_rbac_enabled     = var.enable_azure_rbac
+    admin_group_object_ids = var.admin_group_object_ids
   }
 
   # Enable workload identity and OIDC issuer
@@ -60,4 +61,12 @@ resource "azurerm_role_assignment" "cluster_managed_identity_operator" {
   scope                = var.kubelet_identity_id
   role_definition_name = "Managed Identity Operator"
   principal_id         = var.cluster_identity_principal_id
+}
+
+# Role assignment for current user/service principal as cluster admin
+# This ensures the deploying user can access the cluster after creation
+resource "azurerm_role_assignment" "current_user_cluster_admin" {
+  scope                = azurerm_kubernetes_cluster.main.id
+  role_definition_name = "Azure Kubernetes Service Cluster Admin Role"
+  principal_id         = data.azurerm_client_config.current.object_id
 }

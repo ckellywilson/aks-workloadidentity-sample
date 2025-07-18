@@ -1,53 +1,125 @@
-# GitHub Copilot Prompts for AKS Workload Identity Deployment
+# Copilot Development Prompts and Instructions
 
-## 🎯 **Primary Deployment Prompt**
+## Project Overview
+This repository contains a production-ready Terraform configuration for deploying an Azure Kubernetes Service (AKS) cluster with Workload Identity, Azure Container Registry (ACR), and Azure Storage Account integration.
 
-Use this prompt with GitHub Copilot to generate a complete Terraform deployment for AKS with Workload Identity:
+## Architecture Principles
 
+### Workload Identity (KEEP AS-IS)
+- **Purpose**: Enable AKS pods to securely authenticate to Azure services using managed identities
+- **Components**: Federated credentials, service accounts, and OIDC integration
+- **Use Case**: Allows pods to access Azure Storage, Key Vault, and other Azure services without storing credentials
+- **Status**: ✅ IMPLEMENTED - Keep all workload identity functionality for pod-to-storage connectivity
+
+### Separate User Assigned Managed Identities (KEEP AS-IS)
+- **Kubelet Identity**: Used for node-level operations (pulling container images from ACR)
+- **Cluster Identity**: Used for cluster management operations
+- **Workload Identity**: Used for pod-level authentication to Azure services
+- **Rationale**: Best practice to separate concerns and follow principle of least privilege
+- **Status**: ✅ IMPLEMENTED - Keep separate UAMIs as recommended Azure best practice
+
+### Entra ID Group-Based Admin Access (NEWLY ADDED)
+- **Purpose**: Enable Azure AD group members to access and manage the AKS cluster
+- **Implementation**: Configure admin_group_object_ids in azure_active_directory_role_based_access_control
+- **Current User Access**: Automatically grants cluster admin access to the deploying user/service principal
+- **Benefits**: Centralized access management through Azure AD groups
+- **Status**: ✅ IMPLEMENTED - Admin groups can now be configured via terraform.tfvars
+
+## Configuration Instructions
+
+### Adding Azure AD Admin Groups
+1. **Find Group Object IDs**:
+   ```bash
+   # Azure CLI
+   az ad group show --group "AKS-Admins" --query id --output tsv
+   
+   # PowerShell
+   (Get-AzADGroup -DisplayName "AKS-Admins").Id
+   ```
+
+2. **Update terraform.tfvars**:
+   ```hcl
+   admin_group_object_ids = [
+     "12345678-1234-1234-1234-123456789012",  # AKS-Admins group
+     "87654321-4321-4321-4321-210987654321"   # DevOps-Team group
+   ]
+   ```
+
+3. **Deploy**:
+   ```bash
+   cd infra/tf
+   terraform plan
+   terraform apply
+   ```
+
+### Access Pattern
+- **Admin Groups**: Full cluster admin access via Azure RBAC
+- **Deploying User**: Automatic cluster admin access granted during deployment
+- **Workload Pods**: Access Azure services via workload identity (managed identities)
+- **Node Operations**: Handled by kubelet identity (ACR pulls, etc.)
+
+## Development Guidelines
+
+### When Making Changes
+1. **Preserve Workload Identity**: Do NOT modify the workload identity setup - it's needed for pod-to-storage authentication
+2. **Maintain UAMI Separation**: Keep separate managed identities for kubelet, cluster, and workload operations
+3. **Test Admin Access**: Verify group members can access cluster after changes
+4. **Validate Current User Access**: Ensure deploying user retains cluster access
+
+### Security Considerations
+- Local accounts are disabled (`local_account_disabled = true`)
+- Azure RBAC is enabled for fine-grained permissions
+- Admin access is controlled through Azure AD groups
+- Workload identity provides secure pod-to-Azure authentication
+- Each identity has minimum required permissions
+
+### Deployment Best Practices
+- Use the provided deployment scripts in `infra/tf/`
+- Backend state is managed separately to avoid circular dependencies
+- Always validate group Object IDs before deployment
+- Test cluster access with group members before production use
+
+## Common Tasks
+
+### Adding New Admin Group
+```hcl
+# In terraform.tfvars, add to existing list:
+admin_group_object_ids = [
+  "existing-group-id-1",
+  "existing-group-id-2",
+  "new-group-id-here"
+]
 ```
-I need a complete, production-ready Terraform deployment for Azure Kubernetes Service (AKS) with comprehensive identity and security features. Generate all files following these exact specifications:
 
-CORE INFRASTRUCTURE:
-- AKS cluster: Public access, workload identity enabled, OIDC issuer enabled
-- Azure Active Directory integration with Azure RBAC enabled
-- Azure Container Registry: Connected to AKS with managed identity authentication
-- Azure Storage Account: For Terraform state backend with versioning enabled
-- Resource Group: To contain all resources
-- Three User Assigned Managed Identities:
-  * Kubelet identity: For AKS node operations and ACR pull access
-  * Cluster identity: For AKS cluster operations
-  * Workload identity: For pod authentication with Azure services
+### Troubleshooting Access Issues
+1. Verify group Object ID is correct
+2. Check group membership in Azure AD
+3. Ensure user has Azure CLI/kubectl configured
+4. Validate cluster RBAC assignments
 
-AKS SECURITY FEATURES (CRITICAL):
-- Azure Active Directory (AAD) integration enabled
-- Azure RBAC authorization enabled (not Kubernetes RBAC)
-- Workload Identity enabled for pod-level identity
-- OIDC issuer enabled for federated authentication
-- Network security groups with appropriate rules
-- Private cluster endpoint (optional but recommended)
+### Connecting to Cluster
+```bash
+# Get cluster credentials
+az aks get-credentials --resource-group akswlid-dev-rg --name akswlid-dev-aks
 
-WORKLOAD IDENTITY SETUP:
-- Federated identity credential linking Azure AD to Kubernetes service account
-- Kubernetes service account with proper workload identity annotations
-- OIDC integration between AKS and Azure AD
-- No secrets stored anywhere - use federated credentials only
-- Proper Azure RBAC role assignments for workload identity
+# Verify access
+kubectl get nodes
+```
 
-TERRAFORM ARCHITECTURE:
-- Main configuration with provider setup (azurerm, azuread, kubernetes)
-- Remote backend configuration for Azure Storage
-- Organize all Terraform code in infra/tf/ directory
-- Five separate modules in infra/tf/modules/ directory:
-  1. storage/ - Storage account and container for app data
-  2. container_registry/ - ACR with proper configuration
-  3. managed_identity/ - Three UAMI resources with role assignments
-  4. aks/ - AKS cluster with AAD, RBAC, workload identity, and OIDC
-  5. workload_identity/ - Federated credentials and K8s service account
+## Implementation Status
+- ✅ Workload Identity: Fully implemented and operational
+- ✅ Separate UAMIs: Kubelet, cluster, and workload identities configured
+- ✅ Azure AD Integration: Enabled with admin group support
+- ✅ Current User Access: Deploying user automatically granted admin access
+- ✅ ACR Integration: Kubelet identity has AcrPull permissions
+- ✅ Storage Integration: Available for Terraform state and general use
 
-AKS MODULE REQUIREMENTS:
-- azure_active_directory_role_based_access_control enabled
-- workload_identity_enabled = true
-- oidc_issuer_enabled = true
+## Notes for Copilot/AI Development
+- This configuration is production-ready and follows Azure best practices
+- Workload identity setup is complete and should not be modified
+- Admin group configuration allows for scalable access management
+- All security features are enabled (Azure RBAC, disabled local accounts)
+- The architecture supports both human admin access and automated pod authentication
 - local_account_disabled = true (force AAD authentication)
 - role_based_access_control_enabled = true
 - Network configuration with appropriate security groups

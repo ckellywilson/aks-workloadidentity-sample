@@ -1,33 +1,34 @@
 # Azure Resource Naming Conventions
 
-This document outlines the naming conventions used in this Terraform deployment to ensure consistency and compliance with Azure naming requirements.
+> **📖 Primary Documentation**: For complete configuration details, see the main [README.md](README.md#-configuration-reference).
 
-## Naming Pattern
+## Quick Reference
 
-The standardized naming pattern follows Azure best practices:
+This deployment uses standardized naming patterns:
 
 ```
 <project>-<environment>-<resource-type>
 ```
 
-For resources with specific constraints (like Storage Accounts and Container Registry), special handling is applied.
+### Examples
+- Resource Group: `akswlid-dev-rg`
+- AKS Cluster: `akswlid-dev-aks`  
+- Storage Account: `akswliddevst` (no hyphens due to Azure constraints)
+- Container Registry: `akswliddevacr` (no hyphens due to Azure constraints)
 
-## Resource Naming Standards
+### Project Name Requirements
+- **Maximum**: 10 characters
+- **Characters**: Lowercase letters and numbers only (a-z, 0-9)
+- **Validation**: Enforced by Terraform validation rules
 
-| Resource Type | Pattern | Example | Notes |
-|---------------|---------|---------|-------|
-| Resource Group | `{project}-{env}-rg` | `akswlid-dev-rg` | Standard pattern |
-| AKS Cluster | `{project}-{env}-aks` | `akswlid-dev-aks` | Standard pattern |
-| Managed Identity | `{project}-{env}-{type}-mi` | `akswlid-dev-kubelet-mi` | Type: kubelet, cluster, workload |
-| Storage Account | `{project}{env}st` | `akswliddevst` | No hyphens, max 24 chars, lowercase |
-| Container Registry | `{project}{env}acr` | `akswliddevacr` | No hyphens, max 50 chars, lowercase |
-| Federated Credential | `{project}-{env}-federated-cred` | `akswlid-dev-federated-cred` | Standard pattern |
+### Configuration
+Update `infra/tf/terraform.tfvars`:
+```hcl
+project_name = "myproject"  # Max 10 chars, lowercase alphanumeric
+environment  = "dev"        # dev, staging, prod
+```
 
-## Environment Tokens
-
-| Environment | Token |
-|-------------|-------|
-| Development | `dev` |
+**📖 Complete details**: See [README.md Configuration Reference](README.md#-configuration-reference)
 | Staging | `stg` |
 | Production | `prod` |
 

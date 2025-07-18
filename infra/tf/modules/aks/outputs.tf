@@ -48,3 +48,8 @@ output "kubelet_identity" {
   description = "Kubelet identity details"
   value       = azurerm_kubernetes_cluster.main.kubelet_identity
 }
+
+output "admin_group_object_ids" {
+  description = "Object IDs of Azure AD groups with admin access"
+  value       = var.admin_group_object_ids
+}

@@ -1,53 +1,15 @@
-# 🚀 **Customer Quick Start Guide**
+# Customer Quick Start Guide
 
-This guide helps customers quickly replicate the AKS Workload Identity deployment using either GitHub Copilot or direct cloning.
+> **📖 This guide has been consolidated into the main [README.md](README.md)**
 
-## 🎯 **Choose Your Approach**
+For the most up-to-date and comprehensive deployment instructions, please use the [main README](README.md).
 
-### **Option A: Generate with GitHub Copilot (Recommended for Learning)**
+## Quick Links
 
-**Time**: 15-30 minutes | **Skill Level**: Intermediate | **Customization**: High
-
-1. **Prerequisites**
-   - VS Code with GitHub Copilot extension
-   - Azure CLI installed
-   - Terraform installed
-
-2. **Generate the Code**
-   ```bash
-   # Create a new directory
-   mkdir my-aks-deployment
-   cd my-aks-deployment
-   
-   # Open VS Code
-   code .
-   ```
-
-3. **Use GitHub Copilot**
-   - Open Copilot Chat (Ctrl+Shift+I)
-   - Copy the prompt from `COPILOT_PROMPT.md`
-   - Paste and execute in Copilot Chat
-   - Review and save the generated files
-
-4. **Deploy**
-   ```bash
-   # Navigate to Terraform directory
-   cd infra/tf
-   
-   # Update configuration
-   vim terraform.tfvars
-   
-   # Deploy
-   ./deploy.sh
-   ```
-
-### **Option B: Clone and Deploy (Recommended for Quick Setup)**
-
-**Time**: 10-15 minutes | **Skill Level**: Beginner | **Customization**: Medium
-
-1. **Clone Repository**
-   ```bash
-   git clone <repository-url>
+- **🚀 [Get Started Now](README.md#-quick-start)**
+- **🔐 [Configure Admin Access](README.md#-configure-admin-access-required)**
+- **🚀 [Deploy Infrastructure](README.md#-deployment-guide)**
+- ** [Troubleshooting](README.md#-troubleshooting)**
    cd aks-workloadidentity-sample
    ```
 

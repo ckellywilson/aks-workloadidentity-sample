@@ -1,254 +1,201 @@
 # AKS Workload Identity Sample
 
-This repository contains a complete Terraform configuration for deploying an Azure Kubernetes Service (AKS) cluster with Workload Identity, Azure Container Registry (ACR), and Azure Storage Account. The deployment follows Terraform best practices with modular architecture.
+This repository provides a production-ready Terraform configuration for deploying Azure Kubernetes Service (AKS) with Workload Identity, Azure Container Registry (ACR), and Azure Storage. The deployment follows Azure and Terraform best practices with a modular architecture.
 
-## Quick Start
+## 🚀 Quick Start
 
-For customers who want to get started quickly, run the start script:
-
-```bash
-./start.sh
-```
-
-This script will guide you to the correct directory and display next steps.
-
-## Deployment Options
-
-### Option 1: Using GitHub Copilot (Recommended)
-1. Open GitHub Copilot in your VS Code
-2. Use the prompt from [`COPILOT_PROMPT.md`](COPILOT_PROMPT.md) to generate similar infrastructure
-3. Follow the prompts to customize for your environment
-
-### Option 2: Direct Deployment
-1. Review the [`CUSTOMER_GUIDE.md`](CUSTOMER_GUIDE.md) for step-by-step instructions
-2. Navigate to the terraform directory:
-   ```bash
-   cd infra/tf
-   ```
-3. Follow the deployment instructions in the guide
-
-## Architecture Overview
-
-The infrastructure includes:
-
-- **AKS Cluster**: Publicly accessible Kubernetes cluster with OIDC issuer and workload identity enabled
-- **User Assigned Managed Identities (UAMI)**:
-  - Kubelet identity for node operations
-  - Cluster identity for cluster operations
-  - Workload identity for pod authentication
-- **Azure Container Registry (ACR)**: Connected to the AKS cluster for container image storage
-- **Azure Storage Account**: Used for Terraform state management and general storage needs
-- **Workload Identity Configuration**: Federated credentials and service account setup
-
-## Prerequisites
-
-Before deploying this infrastructure, ensure you have:
-
-1. **Azure CLI** installed and configured
-2. **Terraform** (>= 1.5) installed
-3. **kubectl** installed (for cluster management)
-4. **Azure subscription** with appropriate permissions
-5. **Bash shell** (for deployment scripts)
-
-## Project Structure
-
-```
-.
-├── README.md               # This file
-├── NAMING.md               # Naming conventions documentation
-├── COPILOT_PROMPT.md       # GitHub Copilot prompt for replication
-├── CUSTOMER_GUIDE.md       # Quick start guide for customers
-├── start.sh                # Quick navigation helper script
-├── examples/               # Example applications
-│   ├── README.md
-│   ├── test-pod.yaml
-│   └── sample-app.yaml
-└── infra/                  # Infrastructure code
-    └── tf/                 # Terraform deployment
-        ├── main.tf         # Main Terraform configuration
-        ├── variables.tf    # Input variables
-        ├── outputs.tf      # Output values
-        ├── terraform.tfvars # Variable values
-        ├── backend.hcl     # Backend configuration
-        ├── deploy.sh       # Deployment script
-        ├── cleanup.sh      # Cleanup script
-        ├── validate.sh     # Validation script
-        └── modules/        # Terraform modules
-            ├── aks/
-            ├── container_registry/
-            ├── managed_identity/
-            ├── storage/
-            └── workload_identity/
-```
-
-## 🏢 **For Customers: Replicating This Deployment**
-
-This repository is designed for easy replication. You have two options:
-
-### **🤖 Generate from Scratch with GitHub Copilot**
-
-**Best for**: Learning, customization, or adapting to different requirements
-
-1. **Open GitHub Copilot Chat** in VS Code
-2. **Copy the prompt** from [`COPILOT_PROMPT.md`](COPILOT_PROMPT.md)
-3. **Paste and execute** the prompt in Copilot Chat
-4. **Review the generated code** and make any needed adjustments
-5. **Deploy** using the generated scripts
-
-**Benefits:**
-- ✅ Learn how each component works
-- ✅ Customize for your specific needs
-- ✅ Understand the complete architecture
-- ✅ Generate similar deployments for other projects
-
-### **📋 Clone and Deploy**
-
-**Best for**: Quick deployment with minimal changes
-
-1. **Clone this repository**
-2. **Update `terraform.tfvars`** with your values
-3. **Run `./deploy.sh`** to deploy everything
-4. **Validate** with `./validate.sh`
-
-**Benefits:**
-- ✅ Fastest deployment
-- ✅ Pre-tested configuration
-- ✅ Ready-to-use scripts
-- ✅ Complete documentation
-
-> 📋 **For a detailed step-by-step guide, see [`CUSTOMER_GUIDE.md`](CUSTOMER_GUIDE.md)**
-
-### **🎯 Recommended Workflow for Customers**
-
-```bash
-# Option 1: GitHub Copilot Generation
-# 1. Use COPILOT_PROMPT.md in GitHub Copilot Chat
-# 2. Review and customize generated code
-# 3. Follow the deployment steps below
-
-# Option 2: Direct Clone
-git clone <this-repository>
-cd aks-workloadidentity-sample
-
-# Navigate to Terraform directory
-cd infra/tf
-
-# Update configuration
-vim terraform.tfvars  # Set your project details
-
-# Deploy infrastructure
-./deploy.sh
-
-# Validate deployment
-./validate.sh
-
-# Test with examples
-kubectl apply -f ../../examples/test-pod.yaml
-```
-
-### **📚 What Customers Get**
-
-- **Complete Infrastructure**: AKS + ACR + Storage + Managed Identities
-- **Security Best Practices**: Workload identity, no stored secrets
-- **Automation Scripts**: Deploy, validate, and cleanup scripts
-- **Documentation**: Comprehensive guides and examples
-- **Replication Guide**: GitHub Copilot prompt for generating similar deployments
-
-### 1. Clone and Configure
-
+### Option 1: Clone and Deploy (Fastest)
 ```bash
 git clone <repository-url>
 cd aks-workloadidentity-sample
-```
-
-### 2. Update Configuration
-
-Navigate to the Terraform directory and edit `terraform.tfvars` to customize your deployment:
-
-```bash
 cd infra/tf
-vim terraform.tfvars
+
+# Configure your deployment
+cp terraform.tfvars.example terraform.tfvars
+vim terraform.tfvars  # Add your Azure AD group Object IDs
+
+# Deploy
+./deploy.sh
 ```
 
-```hcl
-project_name       = "akswlid"        # Short name (max 10 chars, lowercase alphanumeric)
-environment        = "dev"            # Environment token: dev, stg, prod
-location           = "East US"
-kubernetes_version = "1.28"
-node_count         = 3
-vm_size            = "Standard_B2s"
+### Option 2: Generate with GitHub Copilot (Learning)
+1. Use the prompt from [`.copilot/prompts.md`](.copilot/prompts.md) 
+2. Generate infrastructure from scratch
+3. Customize for your needs
+
+### Option 3: Quick Navigation
+```bash
+./start.sh  # Helper script to navigate and show next steps
 ```
 
-**Note**: See [NAMING.md](NAMING.md) for detailed naming conventions and constraints.
+## 🔐 Configure Admin Access (Required)
 
-### 3. Deploy Infrastructure
+**Before deploying**, configure Azure AD groups for cluster admin access:
 
-Run the deployment script:
+1. **Find your Azure AD group Object ID**:
+   ```bash
+   # Azure CLI
+   az ad group show --group "AKS-Admins" --query id --output tsv
+   
+   # PowerShell  
+   (Get-AzADGroup -DisplayName "AKS-Admins").Id
+   ```
 
+2. **Add to `infra/tf/terraform.tfvars`**:
+   ```hcl
+   admin_group_object_ids = [
+     "12345678-1234-1234-1234-123456789012"  # Replace with your group Object ID
+   ]
+   ```
+
+3. **Deploy and test**:
+   ```bash
+   cd infra/tf && ./deploy.sh
+   kubectl get nodes  # Should work for group members
+   ```
+
+> � **Detailed guide**: [Azure AD Admin Groups Configuration](docs/azure-ad-admin-groups.md)
+
+## 🏗️ Architecture Overview
+
+This deployment creates a secure, production-ready AKS environment with:
+
+### Core Infrastructure
+- **AKS Cluster**: Azure AD integrated, workload identity enabled, local accounts disabled
+- **Azure Container Registry (ACR)**: Connected to AKS with managed identity authentication  
+- **Azure Storage Account**: For Terraform state and application data
+- **Resource Group**: Contains all resources with consistent tagging
+
+### Identity and Security
+- **Azure AD Integration**: Enterprise authentication with group-based admin access
+- **Three User Assigned Managed Identities (UAMIs)**:
+  - 🔧 **Kubelet Identity**: Node operations (ACR pulls, etc.)
+  - ⚙️ **Cluster Identity**: Cluster management operations
+  - 🔐 **Workload Identity**: Pod authentication to Azure services
+- **Workload Identity**: Pods access Azure services without storing secrets
+- **Azure RBAC**: Fine-grained permissions and access control
+
+### Security Features
+✅ Azure AD-only authentication (local accounts disabled)  
+✅ Group-based admin access control  
+✅ Workload identity for secure pod authentication  
+✅ Separate managed identities (principle of least privilege)  
+✅ Azure RBAC for fine-grained permissions  
+✅ No secrets stored in cluster
+
+## 📋 Prerequisites
+
+Before deploying, ensure you have:
+
+- **Azure CLI** installed and configured (`az login`)
+- **Terraform** (>= 1.5) installed 
+- **kubectl** installed (for cluster management)
+- **Azure subscription** with Owner or Contributor permissions
+- **Bash shell** (for deployment scripts)
+- **Azure AD group** for admin access (recommended)
+
+## 📁 Project Structure
+
+```
+aks-workloadidentity-sample/
+├── 📖 README.md                    # This comprehensive guide
+├── � NAMING.md                    # Resource naming conventions (quick reference)
+├── 🚀 start.sh                     # Navigation helper script
+├── 📁 .copilot/                    # Development and AI instructions
+│   ├── prompts.md                  # GitHub Copilot development guide
+│   └── security-config.md          # Security configuration reference
+├── 📁 docs/                        # Detailed documentation
+│   └── azure-ad-admin-groups.md    # Azure AD configuration guide
+├── 📁 examples/                    # Example applications and pods
+│   ├── README.md
+│   ├── test-pod.yaml              # Test workload identity
+│   └── sample-app.yaml            # Sample application
+└── 📁 infra/tf/                   # Terraform deployment
+    ├── main.tf                    # Main configuration
+    ├── variables.tf               # Input variables
+    ├── outputs.tf                 # Output values  
+    ├── terraform.tfvars           # Configuration values
+    ├── backend.hcl.template       # Backend configuration template
+    ├── deploy.sh                  # 🚀 Main deployment script
+    ├── cleanup.sh                 # 🧹 Cleanup script
+    ├── validate.sh                # ✅ Validation script
+    └── modules/                   # Terraform modules
+        ├── aks/                   # AKS cluster
+        ├── container_registry/    # Azure Container Registry
+        ├── managed_identity/      # User Assigned Managed Identities
+        ├── storage/              # Storage account
+        └── workload_identity/    # Workload identity configuration
+```
+## 🚀 Deployment Guide
+
+### Step 1: Configure Your Deployment
+
+1. **Navigate to Terraform directory**:
+   ```bash
+   cd infra/tf
+   ```
+
+2. **Update `terraform.tfvars`** with your settings:
+   ```hcl
+   # Basic Configuration
+   project_name         = "myproject"    # Max 10 chars, lowercase alphanumeric
+   environment          = "dev"          # dev, staging, prod
+   location             = "East US"      # Azure region
+   kubernetes_version   = "1.30.12"     # Supported AKS version
+   
+   # Admin Access (REQUIRED)
+   admin_group_object_ids = [
+     "12345678-1234-1234-1234-123456789012"  # Your Azure AD group Object ID
+   ]
+   
+   # Optional Customization
+   node_count           = 3              # Number of nodes
+   vm_size              = "Standard_B2s" # Node VM size
+   namespace            = "default"      # K8s namespace
+   service_account_name = "workload-identity-sa"
+   ```
+
+### Step 2: Deploy Infrastructure
+
+**Option A: Automated Deployment (Recommended)**
 ```bash
 ./deploy.sh
 ```
 
-This script will:
-- Check prerequisites
-- Login to Azure
-- Create storage account for Terraform state (optional)
-- Initialize Terraform
-- Plan and apply the deployment
-- Configure kubectl
-
-### 4. Verify Deployment
-
-After deployment, verify the setup:
-
+**Option B: Manual Deployment**
 ```bash
-# Check cluster status
-kubectl get nodes
+# Initialize Terraform
+terraform init -backend-config=backend.hcl.template
 
-# Check workload identity service account
-kubectl get serviceaccount workload-identity-sa
-
-# Check managed identities
-az identity list --resource-group <resource-group-name>
-```
-
-## Manual Deployment
-
-If you prefer manual deployment:
-
-### 1. Initialize Terraform
-
-```bash
-# Navigate to Terraform directory
-cd infra/tf
-
-# Configure backend (update backend.hcl with your storage account details)
-terraform init -backend-config=backend.hcl
-```
-
-### 2. Plan and Apply
-
-```bash
-# Plan deployment
+# Plan and apply
 terraform plan -out=tfplan
-
-# Apply deployment
 terraform apply tfplan
-```
 
-### 3. Configure kubectl
-
-```bash
-# Get cluster credentials
+# Configure kubectl
 az aks get-credentials --resource-group $(terraform output -raw resource_group_name) --name $(terraform output -raw aks_cluster_name)
 ```
 
-## Using Workload Identity
+### Step 3: Verify Deployment
 
-Once deployed, you can use the workload identity in your pods:
+```bash
+# Check cluster access
+kubectl get nodes
 
-### Example Pod Configuration
+# Verify workload identity service account
+kubectl get serviceaccount workload-identity-sa
 
+# List managed identities
+az identity list --resource-group $(terraform output -raw resource_group_name)
+
+# Test workload identity with example pod
+kubectl apply -f ../../examples/test-pod.yaml
+```
+
+## 🔧 Using Workload Identity
+
+Once deployed, your pods can authenticate to Azure services without storing secrets:
+
+### Example: Pod with Workload Identity
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -256,174 +203,211 @@ metadata:
   name: workload-identity-test
   namespace: default
 spec:
-  serviceAccountName: workload-identity-sa
+  serviceAccountName: workload-identity-sa  # Uses the created service account
   containers:
-  - name: test-container
+  - name: azure-cli
     image: mcr.microsoft.com/azure-cli:latest
-    command: ["/bin/bash"]
-    args: ["-c", "sleep 3600"]
+    command: ["/bin/bash", "-c", "sleep 3600"]
     env:
     - name: AZURE_CLIENT_ID
-      value: "<workload-identity-client-id>"
+      value: "$(terraform output -raw workload_identity_client_id)"
 ```
 
 ### Testing Workload Identity
-
 ```bash
-# Get the client ID (run from infra/tf directory)
-WORKLOAD_IDENTITY_CLIENT_ID=$(terraform output -raw workload_identity_client_id)
+# Deploy test pod
+kubectl apply -f examples/test-pod.yaml
 
-# Create a test pod
-kubectl run test-workload-identity \
-  --image=mcr.microsoft.com/azure-cli:latest \
-  --serviceaccount=workload-identity-sa \
-  --env="AZURE_CLIENT_ID=$WORKLOAD_IDENTITY_CLIENT_ID" \
-  --command -- sleep 3600
+# Test Azure authentication from within the pod
+kubectl exec -it workload-identity-test -- az account show
 
-# Test authentication
-kubectl exec -it test-workload-identity -- az account show
+# The pod should authenticate automatically using workload identity
 ```
 
-## Modules
+### Common Workload Identity Patterns
+```bash
+# Grant workload identity access to storage account
+az role assignment create \
+  --assignee $(terraform output -raw workload_identity_principal_id) \
+  --role "Storage Blob Data Contributor" \
+  --scope /subscriptions/<subscription-id>/resourceGroups/<rg-name>/providers/Microsoft.Storage/storageAccounts/<storage-name>
 
-### AKS Module (`modules/aks/`)
-- Creates AKS cluster with workload identity enabled
-- Configures kubelet and cluster managed identities
-- Sets up ACR integration
+# Grant access to Key Vault
+az role assignment create \
+  --assignee $(terraform output -raw workload_identity_principal_id) \
+  --role "Key Vault Secrets User" \
+  --scope /subscriptions/<subscription-id>/resourceGroups/<rg-name>/providers/Microsoft.KeyVault/vaults/<keyvault-name>
+```
 
-### Container Registry Module (`modules/container_registry/`)
-- Creates Azure Container Registry
-- Configures access policies
+## 📊 Configuration Reference
 
-### Managed Identity Module (`modules/managed_identity/`)
-- Creates three User Assigned Managed Identities
-- Provides identity details for other modules
+### Key Variables
 
-### Storage Module (`modules/storage/`)
-- Creates storage account for Terraform state
-- Sets up blob container for state files
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `project_name` | Short project identifier | `akswlid` | `myapp` |
+| `environment` | Environment name | `dev` | `dev`, `staging`, `prod` |
+| `location` | Azure region | `centralus` | `East US`, `West Europe` |
+| `admin_group_object_ids` | Azure AD admin groups | `[]` | `["12345678-1234-1234-1234-123456789012"]` |
+| `kubernetes_version` | AKS version | `1.30.12` | `1.29.9`, `1.30.12` |
+| `node_count` | Number of nodes | `3` | `2`, `5`, `10` |
+| `vm_size` | Node VM size | `Standard_B2s` | `Standard_D2s_v3` |
 
-### Workload Identity Module (`modules/workload_identity/`)
-- Creates federated identity credentials
-- Sets up Kubernetes service account
-- Configures workload identity integration
+> 📋 **Full reference**: See [`variables.tf`](infra/tf/variables.tf) for all configuration options
 
-## Configuration Variables
+### Important Outputs
 
-| Variable | Description | Default | Constraints |
-|----------|-------------|---------|-------------|
-| `project_name` | Name of the project | `akswlid` | Max 10 chars, lowercase alphanumeric only |
-| `environment` | Environment name | `dev` | Use: dev, stg, prod |
-| `location` | Azure region | `East US` | Valid Azure region |
-| `kubernetes_version` | Kubernetes version | `1.28` | Supported AKS version |
-| `node_count` | Number of nodes | `3` | 1-100 |
-| `vm_size` | VM size for nodes | `Standard_B2s` | Valid Azure VM size |
-| `namespace` | Kubernetes namespace | `default` | Valid k8s namespace name |
-| `service_account_name` | Service account name | `workload-identity-sa` | Valid k8s SA name |
+After deployment, use these outputs to integrate with your applications:
 
-## Outputs
+```bash
+# Get cluster connection command
+terraform output kubeconfig_command
 
-After deployment, the following outputs are available:
+# Get workload identity details
+terraform output workload_identity_client_id
+terraform output workload_identity_principal_id
 
-- `resource_group_name`: Resource group name
-- `aks_cluster_name`: AKS cluster name
-- `container_registry_login_server`: ACR login server
-- `workload_identity_client_id`: Workload identity client ID
-- `kubeconfig_command`: Command to get kubeconfig
+# Get resource information
+terraform output resource_group_name
+terraform output aks_cluster_name
+terraform output container_registry_login_server
+```
 
-## State Management
+## 🛠️ Advanced Topics
 
-This configuration uses Azure Storage Account for Terraform state management. The state is stored in:
-- **Storage Account**: Created automatically or specified in `infra/tf/backend.hcl`
+### Terraform Modules
+
+This deployment uses modular Terraform architecture:
+
+- **`modules/aks/`**: AKS cluster with Azure AD integration and workload identity
+- **`modules/container_registry/`**: Azure Container Registry with managed identity access
+- **`modules/managed_identity/`**: Three User Assigned Managed Identities
+- **`modules/storage/`**: Storage account for Terraform state and application data
+- **`modules/workload_identity/`**: Federated credentials and Kubernetes service account
+
+### State Management
+
+Terraform state is stored in Azure Storage for team collaboration:
+- **Storage Account**: Auto-created or specified in `backend.hcl`
 - **Container**: `tfstate`
-- **Blob**: `aks-workloadidentity/terraform.tfstate`
+- **State File**: `aks-workloadidentity/terraform.tfstate`
 
-## Security Considerations
+### Security Best Practices
 
-- The cluster is publicly accessible by default
-- Workload identity uses federated credentials (no secrets stored)
-- ACR integration uses managed identity authentication
-- All resources are tagged for governance
+✅ **No Secrets Stored**: Workload identity uses federated credentials  
+✅ **Least Privilege**: Separate managed identities for different purposes  
+✅ **Azure AD Only**: Local cluster accounts disabled  
+✅ **RBAC Enabled**: Fine-grained permissions with Azure RBAC  
+✅ **Tagged Resources**: Consistent tagging for governance  
 
-## Troubleshooting
+### Customization Options
+
+**Scale the cluster**:
+```hcl
+node_count = 5
+vm_size = "Standard_D2s_v3"
+```
+
+**Multiple admin groups**:
+```hcl
+admin_group_object_ids = [
+  "group-1-object-id",
+  "group-2-object-id"
+]
+```
+
+**Different environment**:
+```hcl
+environment = "production"
+location = "West Europe"
+```
+
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-1. **Authentication Errors**: Ensure you're logged in to Azure CLI
-2. **State Backend Issues**: Check storage account configuration in backend.hcl
-3. **Kubernetes Provider Issues**: Ensure AKS cluster is accessible
+| Issue | Solution |
+|-------|----------|
+| Authentication errors | Run `az login` and ensure correct subscription |
+| Terraform init fails | Check `backend.hcl` configuration and storage account access |
+| kubectl access denied | Verify you're a member of the configured admin groups |
+| Workload identity not working | Check service account annotations and federated credentials |
 
 ### Debugging Commands
 
 ```bash
-# Navigate to Terraform directory
-cd infra/tf
+# Check Azure authentication
+az account show
 
-# Check Terraform state
-terraform show
+# Validate Terraform configuration
+cd infra/tf && terraform validate
 
-# Validate configuration
-terraform validate
+# Check cluster status
+az aks show --resource-group $(terraform output -raw resource_group_name) --name $(terraform output -raw aks_cluster_name)
 
-# Check AKS cluster
-az aks show --resource-group <rg-name> --name <cluster-name>
+# Verify workload identity setup
+kubectl describe serviceaccount workload-identity-sa
+kubectl describe federatedidentitycredential
 
-# Check workload identity
-az identity show --name <identity-name> --resource-group <rg-name>
+# Test cluster connectivity
+kubectl get nodes -v=6  # Verbose output for debugging
 ```
 
-## Cleanup
+### Getting Help
 
-To destroy all resources:
+1. **Check the troubleshooting section above**
+2. **Review Azure documentation**: [AKS Troubleshooting](https://docs.microsoft.com/en-us/azure/aks/troubleshooting)
+3. **Workload Identity docs**: [Azure Workload Identity](https://azure.github.io/azure-workload-identity/)
+4. **Open an issue** in this repository
+
+## 🧹 Cleanup
+
+To remove all deployed resources:
 
 ```bash
-# Navigate to Terraform directory
 cd infra/tf
-
-# Run cleanup script
 ./cleanup.sh
 ```
 
 Or manually:
-
 ```bash
-cd infra/tf
 terraform destroy
 ```
 
-## Best Practices
+> ⚠️ **Warning**: This will permanently delete all resources. Ensure you have backups if needed.
 
-This configuration follows Terraform best practices:
+## 📚 Additional Resources
 
-- **Modular Design**: Separate modules for different components
-- **Variable Management**: Centralized variable definitions
-- **State Management**: Remote state with Azure Storage
-- **Output Values**: Meaningful outputs for integration
-- **Tagging**: Consistent resource tagging
-- **Security**: Managed identity authentication
+### Documentation
+- 📖 **[Naming Conventions](NAMING.md)**: Resource naming guidelines (quick reference)
+- 🔐 **[Azure AD Groups Guide](docs/azure-ad-admin-groups.md)**: Detailed admin access setup
+- 🤖 **[Development Guide](.copilot/prompts.md)**: Instructions for developers and AI
 
-## Contributing
+### Azure Documentation
+- [Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/)
+- [Azure Workload Identity](https://docs.microsoft.com/en-us/azure/aks/workload-identity-overview)
+- [Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/)
+- [Azure RBAC](https://docs.microsoft.com/en-us/azure/role-based-access-control/)
+
+### Terraform Resources
+- [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
+- [Terraform Best Practices](https://www.terraform.io/docs/cloud/guides/recommended-practices/index.html)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+4. Add tests if applicable
+5. Update documentation
+6. Submit a pull request
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+---
 
-For issues and questions:
-1. Check the troubleshooting section
-2. Review Azure documentation
-3. Open an issue in the repository
-
-## References
-
-- [Azure Kubernetes Service (AKS)](https://docs.microsoft.com/en-us/azure/aks/)
-- [Workload Identity](https://docs.microsoft.com/en-us/azure/aks/workload-identity-overview)
-- [Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/)
-- [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
+**Questions?** Open an issue or check the [troubleshooting section](#-troubleshooting) above.

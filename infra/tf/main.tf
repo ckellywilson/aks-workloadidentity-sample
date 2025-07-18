@@ -146,6 +146,7 @@ module "aks" {
   disable_local_accounts   = var.disable_local_accounts
   enable_workload_identity = var.enable_workload_identity
   enable_oidc_issuer       = var.enable_oidc_issuer
+  admin_group_object_ids   = var.admin_group_object_ids
 
   tags = local.common_tags
 }

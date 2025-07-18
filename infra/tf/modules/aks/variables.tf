@@ -92,3 +92,9 @@ variable "enable_oidc_issuer" {
   type        = bool
   default     = true
 }
+
+variable "admin_group_object_ids" {
+  description = "Object IDs of Azure AD groups that should have admin access to the AKS cluster"
+  type        = list(string)
+  default     = []
+}
