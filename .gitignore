@@ -13,6 +13,7 @@ infra/tf/backend.hcl  # Contains environment-specific backend configuration
 
 # IDE files
 .vscode/
+!.vscode/mcp.json  # Track MCP server configuration
 .idea/
 *.swp
 *.swo

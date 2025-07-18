@@ -1,0 +1,33 @@
+{
+    "inputs": [
+        {
+            "type": "promptString",
+            "id": "github_token",
+            "description": "GitHub Personal Access Token",
+            "password": true
+        }
+    ],
+    "servers": {
+        "Terraform MCP Server": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "hashicorp/terraform-mcp-server:0.1.0"
+            ]
+        },
+        "Azure MCP Server": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@azure/mcp@latest",
+                "server",
+                "start"
+            ]
+        },
+        "AKS MCP Server": {
+            "command": "/workspaces/aks-workloadidentity-sample/binaries/aks-mcp-linux-arm64"
+        }
+    }
+}
