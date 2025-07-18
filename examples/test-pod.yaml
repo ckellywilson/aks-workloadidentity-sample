@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-workload-identity
+  namespace: default
+  labels:
+    app: test-workload-identity
+spec:
+  serviceAccountName: workload-identity-sa
+  containers:
+  - name: test-container
+    image: mcr.microsoft.com/azure-cli:latest
+    command: ["/bin/bash"]
+    args: ["-c", "echo 'Testing Workload Identity...'; az account show && echo 'Success!' && sleep 3600"]
+    env:
+    - name: AZURE_CLIENT_ID
+      value: "REPLACE_WITH_WORKLOAD_IDENTITY_CLIENT_ID"  # Update this with actual client ID
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+  restartPolicy: Never

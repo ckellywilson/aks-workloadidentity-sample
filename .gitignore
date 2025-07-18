@@ -1,0 +1,39 @@
+# Terraform files
+infra/tf/*.tfstate
+infra/tf/*.tfstate.*
+infra/tf/*.tfvars.backup
+infra/tf/*.tfplan
+infra/tf/.terraform/
+infra/tf/.terraform.lock.hcl
+infra/tf/backend.hcl  # Contains environment-specific backend configuration
+
+# Backup files
+*.bak
+*.backup
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Sensitive files
+secrets/
+*.pem
+*.key
+
+# Local development files
+.env
+.env.local

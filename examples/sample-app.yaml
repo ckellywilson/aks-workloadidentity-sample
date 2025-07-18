@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      serviceAccountName: workload-identity-sa
+      containers:
+      - name: app
+        image: mcr.microsoft.com/azure-cli:latest
+        command: ["/bin/bash"]
+        args: 
+        - "-c"
+        - |
+          echo "Starting sample application with Workload Identity..."
+          echo "Client ID: $AZURE_CLIENT_ID"
+          
+          # Test Azure authentication
+          echo "Testing Azure authentication..."
+          if az account show; then
+            echo "✓ Successfully authenticated with Azure"
+          else
+            echo "✗ Failed to authenticate with Azure"
+            exit 1
+          fi
+          
+          # List storage accounts (requires appropriate permissions)
+          echo "Listing storage accounts..."
+          az storage account list --query "[].name" -o table || echo "No storage accounts found or insufficient permissions"
+          
+          # Keep the container running
+          echo "Sample application is running. Check logs for authentication status."
+          sleep infinity
+        env:
+        - name: AZURE_CLIENT_ID
+          value: "REPLACE_WITH_WORKLOAD_IDENTITY_CLIENT_ID"  # Update this with actual client ID
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-service
+  namespace: default
+spec:
+  selector:
+    app: sample-app
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: ClusterIP
