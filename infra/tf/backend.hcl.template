@@ -2,7 +2,7 @@
 # This file should be used with: terraform init -backend-config=backend.hcl
 # The deployment script will automatically update these values
 
-resource_group_name  = "terraform-state-rg"
+resource_group_name  = "tfstate-mgmt-rg"
 storage_account_name = "tfstateXXXXXXXX"  # Will be replaced by deployment script
 container_name       = "tfstate"
 key                  = "aks-workloadidentity/terraform.tfstate"

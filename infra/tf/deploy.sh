@@ -63,8 +63,8 @@ create_state_storage() {
     print_status "Setting up Terraform state storage..."
     print_status "Note: Backend state resources are managed via Azure CLI, not Terraform"
     
-    # Variables for state storage
-    RESOURCE_GROUP_NAME="terraform-state-rg"
+    # Variables for state storage - Following Azure naming standards
+    RESOURCE_GROUP_NAME="tfstate-mgmt-rg"  # terraform state management resource group
     STORAGE_ACCOUNT_NAME="tfstate$(date +%s | tail -c 6)"
     CONTAINER_NAME="tfstate"
     LOCATION="Central US"
@@ -100,7 +100,7 @@ create_state_storage() {
     
     cp backend.hcl.template backend.hcl
     sed -i.bak "s/storage_account_name = \"tfstateXXXXXXXX\"/storage_account_name = \"$STORAGE_ACCOUNT_NAME\"/" backend.hcl
-    sed -i.bak "s/resource_group_name  = \"terraform-state-rg\"/resource_group_name  = \"$RESOURCE_GROUP_NAME\"/" backend.hcl
+    sed -i.bak "s/resource_group_name  = \"tfstate-mgmt-rg\"/resource_group_name  = \"$RESOURCE_GROUP_NAME\"/" backend.hcl
     rm -f backend.hcl.bak
     
     print_status "Terraform state storage is ready."

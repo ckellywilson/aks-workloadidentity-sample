@@ -43,6 +43,29 @@ This deployment follows Microsoft Azure naming conventions with standardized res
 | Production | `prod` |
 | Test | `test` |
 
+### Resource Group Strategy
+
+This deployment uses **two separate resource groups** following Azure best practices:
+
+#### 1. Application Resource Groups
+- **Purpose**: Contains application infrastructure (AKS, storage, etc.)
+- **Naming**: `{project}-{environment}-rg`
+- **Examples**: `akswlid-dev-rg`, `akswlid-prod-rg`
+- **Management**: Managed by Terraform
+
+#### 2. Backend State Resource Group  
+- **Purpose**: Contains Terraform state storage
+- **Naming**: `tfstate-mgmt-rg`
+- **Management**: Managed by Azure CLI (prevents circular dependencies)
+- **Security**: Isolated from application resources
+
+**Benefits**:
+- ✅ Prevents circular dependencies
+- ✅ Separates concerns (state vs. application)
+- ✅ Enhanced security isolation
+- ✅ Simplified disaster recovery
+- ✅ Enterprise-grade governance
+
 ### Project Name Requirements
 - **Maximum**: 10 characters
 - **Characters**: Lowercase letters and numbers only (a-z, 0-9)
