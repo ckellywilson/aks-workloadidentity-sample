@@ -23,6 +23,12 @@ variable "cluster_name" {
   type        = string
 }
 
+variable "node_resource_group" {
+  description = "Name of the resource group for AKS infrastructure resources (nodes, load balancers, etc.)"
+  type        = string
+  default     = null
+}
+
 variable "kubernetes_version" {
   description = "Kubernetes version"
   type        = string

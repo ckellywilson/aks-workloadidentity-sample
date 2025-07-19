@@ -9,6 +9,10 @@ resource "azurerm_kubernetes_cluster" "main" {
   dns_prefix          = "${var.project_name}-${var.environment}"
   kubernetes_version  = var.kubernetes_version
 
+  # Custom node resource group for AKS infrastructure resources
+  # This follows Azure naming standards and provides better organization
+  node_resource_group = var.node_resource_group
+
   # Disable local accounts to force Azure AD authentication
   local_account_disabled = var.disable_local_accounts
 

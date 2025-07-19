@@ -45,26 +45,34 @@ This deployment follows Microsoft Azure naming conventions with standardized res
 
 ### Resource Group Strategy
 
-This deployment uses **two separate resource groups** following Azure best practices:
+This deployment uses **three-tier resource group strategy** following Azure best practices:
 
 #### 1. Application Resource Groups
-- **Purpose**: Contains application infrastructure (AKS, storage, etc.)
+- **Purpose**: Contains application infrastructure (AKS control plane, storage, etc.)
 - **Naming**: `{project}-{environment}-rg`
 - **Examples**: `akswlid-dev-rg`, `akswlid-prod-rg`
 - **Management**: Managed by Terraform
 
-#### 2. Backend State Resource Group  
+#### 2. AKS Infrastructure Resource Groups
+- **Purpose**: Contains AKS infrastructure (nodes, load balancers, NSGs, disks)
+- **Naming**: `{project}-{environment}-aks-nodes-rg`
+- **Examples**: `akswlid-dev-aks-nodes-rg`, `akswlid-prod-aks-nodes-rg`
+- **Management**: Managed by Azure (auto-created with custom name)
+
+#### 3. Backend State Resource Group  
 - **Purpose**: Contains Terraform state storage
 - **Naming**: `tfstate-mgmt-rg`
 - **Management**: Managed by Azure CLI (prevents circular dependencies)
 - **Security**: Isolated from application resources
 
 **Benefits**:
+- ✅ Clear separation of control plane vs. infrastructure
 - ✅ Prevents circular dependencies
-- ✅ Separates concerns (state vs. application)
+- ✅ Organized resource lifecycle management
 - ✅ Enhanced security isolation
 - ✅ Simplified disaster recovery
 - ✅ Enterprise-grade governance
+- ✅ Better cost attribution and monitoring
 
 ### Project Name Requirements
 - **Maximum**: 10 characters
@@ -90,6 +98,7 @@ environment  = "dev"
 Generated names:
 - Resource Group: `akswlid-dev-rg`
 - AKS Cluster: `akswlid-dev-aks`
+- AKS Node Resource Group: `akswlid-dev-aks-nodes-rg`
 - Storage Account: `akswliddevst`
 - Container Registry: `akswliddevcr`
 - Workload Identity: `akswlid-dev-workload-id`
@@ -104,6 +113,7 @@ environment  = "prod"
 Generated names:
 - Resource Group: `akswlid-prod-rg`
 - AKS Cluster: `akswlid-prod-aks`
+- AKS Node Resource Group: `akswlid-prod-aks-nodes-rg`
 - Storage Account: `akswlidprodst`
 - Container Registry: `akswlidprodcr`
 - Workload Identity: `akswlid-prod-workload-id`

@@ -76,6 +76,9 @@ locals {
     # Resource Group: rg
     resource_group = "${local.resource_prefix}-rg"
     
+    # AKS Node Resource Group: rg (for infrastructure resources)
+    aks_node_resource_group = "${local.resource_prefix}-aks-nodes-rg"
+    
     # Azure Kubernetes Service: aks
     aks_cluster = "${local.resource_prefix}-aks"
     
@@ -174,6 +177,7 @@ module "aks" {
   environment         = var.environment
   project_name        = var.project_name
   cluster_name        = local.naming.aks_cluster
+  node_resource_group = local.naming.aks_node_resource_group
   kubernetes_version  = var.kubernetes_version
   node_count          = var.node_count
   vm_size             = var.vm_size
