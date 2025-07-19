@@ -76,7 +76,17 @@ output "kubeconfig_command" {
 
 output "admin_group_object_ids" {
   description = "Object IDs of Azure AD groups with admin access to the cluster"
-  value       = var.admin_group_object_ids
+  value       = concat(var.admin_group_object_ids, [azuread_group.aks_admins.object_id])
+}
+
+output "aks_admin_group_name" {
+  description = "Name of the created AKS admin group"
+  value       = azuread_group.aks_admins.display_name
+}
+
+output "aks_admin_group_id" {
+  description = "Object ID of the created AKS admin group"
+  value       = azuread_group.aks_admins.object_id
 }
 
 output "current_user_principal_id" {
@@ -90,7 +100,8 @@ output "cluster_access_info" {
     azure_ad_integration = "enabled"
     azure_rbac_enabled   = var.enable_azure_rbac
     local_accounts       = "disabled"
-    admin_groups_count   = length(var.admin_group_object_ids)
+    admin_groups_count   = length(concat(var.admin_group_object_ids, [azuread_group.aks_admins.object_id]))
     current_user_access  = "admin (automatic)"
+    created_admin_group  = azuread_group.aks_admins.display_name
   }
 }

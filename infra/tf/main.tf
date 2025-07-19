@@ -53,6 +53,23 @@ provider "kubernetes" {
 # Data sources
 data "azurerm_client_config" "current" {}
 
+# Get current user details for group membership
+data "azuread_user" "current" {
+  object_id = data.azurerm_client_config.current.object_id
+}
+
+# Create Azure AD group for AKS administrators
+resource "azuread_group" "aks_admins" {
+  display_name       = "${local.naming.aks_cluster}-admins"
+  description        = "Azure AD group for AKS cluster administrators"
+  security_enabled   = true
+  assignable_to_role = true
+  
+  # Add current user as owner and member
+  owners  = [data.azurerm_client_config.current.object_id]
+  members = [data.azurerm_client_config.current.object_id]
+}
+
 # Local values
 locals {
   # Azure naming conventions following Microsoft recommendations
@@ -225,7 +242,7 @@ module "aks" {
   disable_local_accounts   = var.disable_local_accounts
   enable_workload_identity = var.enable_workload_identity
   enable_oidc_issuer       = var.enable_oidc_issuer
-  admin_group_object_ids   = var.admin_group_object_ids
+  admin_group_object_ids   = concat(var.admin_group_object_ids, [azuread_group.aks_admins.object_id])
 
   tags = local.common_tags
 }

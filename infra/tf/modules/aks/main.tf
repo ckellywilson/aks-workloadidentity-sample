@@ -74,3 +74,27 @@ resource "azurerm_role_assignment" "current_user_cluster_admin" {
   role_definition_name = "Azure Kubernetes Service Cluster Admin Role"
   principal_id         = data.azurerm_client_config.current.object_id
 }
+
+# Additional role assignment for current user as Azure Kubernetes Service RBAC Cluster Admin
+# This provides full Kubernetes RBAC access through Azure AD
+resource "azurerm_role_assignment" "current_user_rbac_cluster_admin" {
+  scope                = azurerm_kubernetes_cluster.main.id
+  role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# Role assignment for admin groups as cluster admin
+resource "azurerm_role_assignment" "admin_groups_cluster_admin" {
+  count                = length(var.admin_group_object_ids)
+  scope                = azurerm_kubernetes_cluster.main.id
+  role_definition_name = "Azure Kubernetes Service Cluster Admin Role"
+  principal_id         = var.admin_group_object_ids[count.index]
+}
+
+# Role assignment for admin groups as Azure Kubernetes Service RBAC Cluster Admin
+resource "azurerm_role_assignment" "admin_groups_rbac_cluster_admin" {
+  count                = length(var.admin_group_object_ids)
+  scope                = azurerm_kubernetes_cluster.main.id
+  role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
+  principal_id         = var.admin_group_object_ids[count.index]
+}
