@@ -247,6 +247,13 @@ module "aks" {
   tags = local.common_tags
 }
 
+# Grant Storage Blob Data Contributor role to workload identity
+resource "azurerm_role_assignment" "workload_identity_storage_contributor" {
+  scope                = module.storage.storage_account_id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = module.managed_identity.workload_identity_principal_id
+}
+
 # Workload Identity Configuration Module
 # Only deployed when deploy_kubernetes_resources is true (after AKS cluster exists)
 module "workload_identity" {
