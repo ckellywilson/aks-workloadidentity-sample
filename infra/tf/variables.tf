@@ -81,6 +81,12 @@ variable "enable_workload_identity" {
   default     = true
 }
 
+variable "deploy_kubernetes_resources" {
+  description = "Deploy Kubernetes resources (requires AKS cluster to exist and kubeconfig to be configured)"
+  type        = bool
+  default     = false
+}
+
 variable "enable_oidc_issuer" {
   description = "Enable OIDC issuer for the AKS cluster"
   type        = bool

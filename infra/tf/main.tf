@@ -1,14 +1,4 @@
-# # Backend State Management
-# ==================================
-# The backend state storage (storage account, resource group) is managed via Azure CLI
-# in the deployment script, NOT via Terraform. This prevents circular dependencies.
-# 
-# Backend resources are created by:
-# - deploy.sh script using Azure CLI commands
-# - Resource group: tfstate-mgmt-rg (Terraform state management)
-# - Storage account: tfstateXXXXXX (auto-generated)
-# - Container: tfstate
-#orm configuration for AKS with Workload Identity
+# Main Terraform configuration for AKS with Workload Identity
 # 
 # IMPORTANT: Backend State Management
 # ==================================
@@ -17,7 +7,7 @@
 # 
 # Backend resources are created by:
 # - deploy.sh script using Azure CLI commands
-# - Resource group: terraform-state-rg
+# - Resource group: tfstate-mgmt-rg (Terraform state management)
 # - Storage account: tfstateXXXXXX (auto-generated)
 # - Container: tfstate
 #
@@ -54,9 +44,10 @@ provider "azurerm" {
 
 provider "azuread" {}
 
+# Kubernetes provider configuration
+# Uses local kubeconfig file which will be configured by the deployment script
 provider "kubernetes" {
-  config_path    = "~/.kube/config"
-  config_context = "akswlid-dev-aks"
+  config_path = "~/.kube/config"
 }
 
 # Data sources
@@ -240,7 +231,9 @@ module "aks" {
 }
 
 # Workload Identity Configuration Module
+# Only deployed when deploy_kubernetes_resources is true (after AKS cluster exists)
 module "workload_identity" {
+  count  = var.deploy_kubernetes_resources ? 1 : 0
   source = "./modules/workload_identity"
 
   resource_group_name            = azurerm_resource_group.main.name

@@ -120,10 +120,22 @@ terraform_plan() {
     terraform plan -out=tfplan
 }
 
-# Apply Terraform deployment
+# Apply Terraform deployment in phases to handle Kubernetes provider dependencies
 terraform_apply() {
-    print_status "Applying Terraform deployment..."
-    terraform apply tfplan
+    print_status "Applying Terraform deployment in phases..."
+    
+    # Phase 1: Deploy Azure infrastructure (no Kubernetes resources)
+    print_status "Phase 1: Deploying Azure infrastructure..."
+    terraform apply -var="deploy_kubernetes_resources=false" tfplan
+    
+    # Configure kubectl access to the newly created AKS cluster
+    print_status "Configuring kubectl access to AKS cluster..."
+    get_kubeconfig
+    
+    # Phase 2: Deploy Kubernetes resources now that cluster exists
+    print_status "Phase 2: Deploying Kubernetes workload identity resources..."
+    terraform plan -var="deploy_kubernetes_resources=true" -out=kubernetes-plan.tfplan
+    terraform apply kubernetes-plan.tfplan
 }
 
 # Get kubeconfig
@@ -162,7 +174,6 @@ main() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         terraform_apply
-        get_kubeconfig
         
         print_status "Deployment completed successfully!"
         print_status "Your AKS cluster is ready with workload identity configured."
