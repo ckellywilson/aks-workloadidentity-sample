@@ -20,7 +20,7 @@ data "azurerm_client_config" "current" {}
 
 # Create federated identity credential for workload identity
 resource "azurerm_federated_identity_credential" "workload_identity" {
-  name                = "${var.project_name}-${var.environment}-federated-cred"
+  name                = var.federated_credential_name
   resource_group_name = var.resource_group_name
   parent_id           = var.workload_identity_id
   audience            = ["api://AzureADTokenExchange"]

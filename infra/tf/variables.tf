@@ -17,9 +17,14 @@ variable "project_name" {
 }
 
 variable "environment" {
-  description = "Environment name (dev, staging, prod)"
+  description = "Environment name (dev, stg, prod)"
   type        = string
   default     = "dev"
+  
+  validation {
+    condition = contains(["dev", "stg", "prod", "test", "staging", "production"], var.environment)
+    error_message = "Environment must be one of: dev, stg, prod, test, staging, production"
+  }
 }
 
 variable "location" {

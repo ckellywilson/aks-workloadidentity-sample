@@ -14,7 +14,7 @@ resource "azurerm_storage_account" "main" {
 }
 
 resource "azurerm_storage_container" "app_data" {
-  name                  = "app-data"
-  storage_account_name  = azurerm_storage_account.main.name
+  name                  = var.app_data_container_name
+  storage_account_id    = azurerm_storage_account.main.id
   container_access_type = "private"
 }

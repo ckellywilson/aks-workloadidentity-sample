@@ -4,91 +4,61 @@
 
 ## Quick Reference
 
-This deployment uses standardized naming patterns:
+This deployment follows Microsoft Azure naming conventions with standardized resource abbreviations:
 
+**Reference**: [Azure Resource Abbreviations](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations)
+
+### Core Naming Pattern
 ```
-<project>-<environment>-<resource-type>
+<project>-<environment>-<resource-abbreviation>
 ```
 
-### Examples
-- Resource Group: `akswlid-dev-rg`
-- AKS Cluster: `akswlid-dev-aks`  
-- Storage Account: `akswliddevst` (no hyphens due to Azure constraints)
-- Container Registry: `akswliddevacr` (no hyphens due to Azure constraints)
+### Resource Abbreviations (Microsoft Standard)
+| Resource Type | Abbreviation | Example |
+|---------------|--------------|---------|
+| Resource Group | `rg` | `akswlid-dev-rg` |
+| AKS Cluster | `aks` | `akswlid-dev-aks` |
+| User Assigned Managed Identity | `id` | `akswlid-dev-workload-id` |
+| Storage Account | `st` | `akswliddevst` (no hyphens) |
+| Container Registry | `cr` | `akswliddevcr` (no hyphens) |
+| Virtual Network | `vnet` | `akswlid-dev-vnet` |
+| Subnet | `snet` | `akswlid-dev-snet` |
+| Network Security Group | `nsg` | `akswlid-dev-nsg` |
+| Key Vault | `kv` | `akswliddevkv` (no hyphens) |
+| Log Analytics Workspace | `log` | `akswlid-dev-log` |
+
+### Special Naming Rules
+
+**Storage Account & Container Registry**: 
+- No hyphens allowed
+- Globally unique across Azure
+- Storage: 3-24 characters, lowercase letters/numbers only
+- Container Registry: 5-50 characters, alphanumeric only
+
+### Environment Abbreviations
+| Environment | Abbreviation |
+|-------------|--------------|
+| Development | `dev` |
+| Staging | `stg` |
+| Production | `prod` |
+| Test | `test` |
 
 ### Project Name Requirements
 - **Maximum**: 10 characters
 - **Characters**: Lowercase letters and numbers only (a-z, 0-9)
+- **Must start with letter**: Cannot begin with a number
 - **Validation**: Enforced by Terraform validation rules
 
 ### Configuration
 Update `infra/tf/terraform.tfvars`:
 ```hcl
 project_name = "myproject"  # Max 10 chars, lowercase alphanumeric
-environment  = "dev"        # dev, staging, prod
+environment  = "dev"        # dev, stg, prod, test, staging, production
 ```
 
-**📖 Complete details**: See [README.md Configuration Reference](README.md#-configuration-reference)
-| Staging | `stg` |
-| Production | `prod` |
+### Examples
 
-## Project Name Constraints
-
-To ensure compatibility with all Azure resource types:
-
-- **Length**: Maximum 10 characters
-- **Characters**: Lowercase letters and numbers only (a-z, 0-9)
-- **No special characters**: No hyphens, underscores, or spaces
-- **Must start with letter**: Cannot start with a number
-
-### Recommended Project Names
-
-- `akswlid` (AKS Workload Identity)
-- `myapp`
-- `webapp01`
-- `api`
-
-## Storage Account Naming Rules
-
-Azure Storage Account names have strict requirements:
-
-- Length: 3-24 characters
-- Characters: Lowercase letters and numbers only
-- Must be globally unique
-- Pattern: `{project}{environment}st`
-
-Example: `akswliddevst`
-
-## Container Registry Naming Rules
-
-Azure Container Registry names have specific requirements:
-
-- Length: 5-50 characters
-- Characters: Alphanumeric only
-- Must be globally unique
-- Pattern: `{project}{environment}acr`
-
-Example: `akswliddevacr`
-
-## Validation
-
-The Terraform configuration includes validation rules to ensure:
-
-1. Project name meets length and character requirements
-2. Resource names comply with Azure naming rules
-3. Names are consistent across all resources
-
-## Usage
-
-When deploying:
-
-1. Set `project_name` to a short, descriptive name (≤10 chars)
-2. Set `environment` to the appropriate token (`dev`, `stg`, `prod`)
-3. The naming module automatically generates compliant names for all resources
-
-## Examples
-
-### Development Environment
+**Development Environment**:
 ```hcl
 project_name = "akswlid"
 environment  = "dev"
@@ -98,10 +68,11 @@ Generated names:
 - Resource Group: `akswlid-dev-rg`
 - AKS Cluster: `akswlid-dev-aks`
 - Storage Account: `akswliddevst`
-- Container Registry: `akswliddevacr`
-- Kubelet Identity: `akswlid-dev-kubelet-mi`
+- Container Registry: `akswliddevcr`
+- Workload Identity: `akswlid-dev-workload-id`
+- Federated Credential: `akswlid-dev-fedcred`
 
-### Production Environment
+**Production Environment**:
 ```hcl
 project_name = "akswlid"
 environment  = "prod"
@@ -111,5 +82,7 @@ Generated names:
 - Resource Group: `akswlid-prod-rg`
 - AKS Cluster: `akswlid-prod-aks`
 - Storage Account: `akswlidprodst`
-- Container Registry: `akswlidprodacr`
-- Kubelet Identity: `akswlid-prod-kubelet-mi`
+- Container Registry: `akswlidprodcr`
+- Workload Identity: `akswlid-prod-workload-id`
+
+**📖 Complete details**: See [README.md Configuration Reference](README.md#-configuration-reference)

@@ -23,6 +23,12 @@ variable "storage_account_name" {
   type        = string
 }
 
+variable "app_data_container_name" {
+  description = "Name of the application data container"
+  type        = string
+  default     = "app-data"
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

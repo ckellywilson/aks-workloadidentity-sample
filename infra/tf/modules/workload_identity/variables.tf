@@ -43,6 +43,11 @@ variable "project_name" {
   type        = string
 }
 
+variable "federated_credential_name" {
+  description = "Name of the federated identity credential"
+  type        = string
+}
+
 variable "namespace" {
   description = "Kubernetes namespace"
   type        = string

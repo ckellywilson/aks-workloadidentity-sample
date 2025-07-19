@@ -45,7 +45,8 @@ provider "azurerm" {
 provider "azuread" {}
 
 provider "kubernetes" {
-  config_path = "~/.kube/config"
+  config_path    = "~/.kube/config"
+  config_context = "akswlid-dev-aks"
 }
 
 # Data sources
@@ -53,18 +54,52 @@ data "azurerm_client_config" "current" {}
 
 # Local values
 locals {
-  # Standardized naming convention
+  # Azure naming conventions following Microsoft recommendations
+  # Pattern: {project}-{environment}-{resource-type-abbreviation}
+  # Special cases handle Azure resource naming constraints
+  
   resource_prefix = "${var.project_name}-${var.environment}"
-
-  # Resource-specific naming (following Azure conventions)
+  
+  # Resource abbreviations following Microsoft Azure naming conventions
+  # Reference: https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations
   naming = {
-    resource_group     = "${local.resource_prefix}-rg"
-    aks_cluster        = "${local.resource_prefix}-aks"
-    storage_account    = substr(replace(lower("${var.project_name}${var.environment}st"), "-", ""), 0, 24)
-    container_registry = substr(replace(lower("${var.project_name}${var.environment}acr"), "-", ""), 0, 50)
-    kubelet_identity   = "${local.resource_prefix}-kubelet-mi"
-    cluster_identity   = "${local.resource_prefix}-cluster-mi"
-    workload_identity  = "${local.resource_prefix}-workload-mi"
+    # Resource Group: rg
+    resource_group = "${local.resource_prefix}-rg"
+    
+    # Azure Kubernetes Service: aks
+    aks_cluster = "${local.resource_prefix}-aks"
+    
+    # Storage Account: st (no hyphens, globally unique, 3-24 chars)
+    storage_account = substr(replace(lower("${var.project_name}${var.environment}st"), "-", ""), 0, 24)
+    
+    # Container Registry: cr (no hyphens, globally unique, 5-50 chars)  
+    container_registry = substr(replace(lower("${var.project_name}${var.environment}cr"), "-", ""), 0, 50)
+    
+    # User Assigned Managed Identity: id
+    kubelet_identity  = "${local.resource_prefix}-kubelet-id"
+    cluster_identity  = "${local.resource_prefix}-cluster-id" 
+    workload_identity = "${local.resource_prefix}-workload-id"
+    
+    # Storage Container: (descriptive name)
+    app_data_container = "app-data"
+    
+    # Federated Identity Credential: (descriptive name)
+    federated_credential = "${local.resource_prefix}-fedcred"
+    
+    # Network Security Group: nsg (if needed in future)
+    network_security_group = "${local.resource_prefix}-nsg"
+    
+    # Virtual Network: vnet (if needed in future) 
+    virtual_network = "${local.resource_prefix}-vnet"
+    
+    # Subnet: snet (if needed in future)
+    subnet = "${local.resource_prefix}-snet"
+    
+    # Key Vault: kv (if needed in future, globally unique, 3-24 chars)
+    key_vault = substr(replace(lower("${var.project_name}-${var.environment}-kv"), "-", ""), 0, 24)
+    
+    # Log Analytics Workspace: log (if needed in future)
+    log_analytics = "${local.resource_prefix}-log"
   }
 
   common_tags = {
@@ -85,12 +120,13 @@ resource "azurerm_resource_group" "main" {
 module "storage" {
   source = "./modules/storage"
 
-  resource_group_name  = azurerm_resource_group.main.name
-  location             = azurerm_resource_group.main.location
-  environment          = var.environment
-  project_name         = var.project_name
-  storage_account_name = local.naming.storage_account
-  tags                 = local.common_tags
+  resource_group_name      = azurerm_resource_group.main.name
+  location                 = azurerm_resource_group.main.location
+  environment              = var.environment
+  project_name             = var.project_name
+  storage_account_name     = local.naming.storage_account
+  app_data_container_name  = local.naming.app_data_container
+  tags                     = local.common_tags
 }
 
 # Container Registry Module
@@ -164,6 +200,7 @@ module "workload_identity" {
   workload_identity_principal_id = module.managed_identity.workload_identity_principal_id
   environment                    = var.environment
   project_name                   = var.project_name
+  federated_credential_name      = local.naming.federated_credential
   namespace                      = var.namespace
   service_account_name           = var.service_account_name
 
