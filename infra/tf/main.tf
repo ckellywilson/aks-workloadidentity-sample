@@ -65,10 +65,48 @@ data "azurerm_client_config" "current" {}
 # Local values
 locals {
   # Azure naming conventions following Microsoft recommendations
-  # Pattern: {project}-{environment}-{resource-type-abbreviation}
+  # Pattern: {project}-{environment}-{region}-{resource-type-abbreviation}
   # Special cases handle Azure resource naming constraints
   
-  resource_prefix = "${var.project_name}-${var.environment}"
+  # Convert location to standard region abbreviation
+  region_abbreviations = {
+    "Central US"       = "cus"
+    "East US"          = "eus"
+    "East US 2"        = "eus2"
+    "West US"          = "wus"
+    "West US 2"        = "wus2"
+    "West US 3"        = "wus3"
+    "North Central US" = "ncus"
+    "South Central US" = "scus"
+    "West Central US"  = "wcus"
+    "Canada Central"   = "cac"
+    "Canada East"      = "cae"
+    "Brazil South"     = "brs"
+    "North Europe"     = "ne"
+    "West Europe"      = "we"
+    "UK South"         = "uks"
+    "UK West"          = "ukw"
+    "France Central"   = "frc"
+    "Germany West Central" = "gwc"
+    "Switzerland North" = "swn"
+    "Norway East"      = "noe"
+    "Sweden Central"   = "sec"
+    "Southeast Asia"   = "sea"
+    "East Asia"        = "ea"
+    "Australia East"   = "aue"
+    "Australia Southeast" = "ause"
+    "Australia Central" = "auc"
+    "Japan East"       = "jpe"
+    "Japan West"       = "jpw"
+    "Korea Central"    = "krc"
+    "Korea South"      = "krs"
+    "South India"      = "si"
+    "Central India"    = "ci"
+    "West India"       = "wi"
+  }
+  
+  region_abbr = lookup(local.region_abbreviations, var.location, replace(lower(var.location), " ", ""))
+  resource_prefix = "${var.project_name}-${var.environment}-${local.region_abbr}"
   
   # Resource abbreviations following Microsoft Azure naming conventions
   # Reference: https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations
@@ -83,10 +121,10 @@ locals {
     aks_cluster = "${local.resource_prefix}-aks"
     
     # Storage Account: st (no hyphens, globally unique, 3-24 chars)
-    storage_account = substr(replace(lower("${var.project_name}${var.environment}st"), "-", ""), 0, 24)
+    storage_account = substr(replace(lower("${var.project_name}${var.environment}${local.region_abbr}st"), "-", ""), 0, 24)
     
     # Container Registry: cr (no hyphens, globally unique, 5-50 chars)  
-    container_registry = substr(replace(lower("${var.project_name}${var.environment}cr"), "-", ""), 0, 50)
+    container_registry = substr(replace(lower("${var.project_name}${var.environment}${local.region_abbr}cr"), "-", ""), 0, 50)
     
     # User Assigned Managed Identity: id
     kubelet_identity  = "${local.resource_prefix}-kubelet-id"
@@ -109,7 +147,7 @@ locals {
     subnet = "${local.resource_prefix}-snet"
     
     # Key Vault: kv (if needed in future, globally unique, 3-24 chars)
-    key_vault = substr(replace(lower("${var.project_name}-${var.environment}-kv"), "-", ""), 0, 24)
+    key_vault = substr(replace(lower("${var.project_name}-${var.environment}-${local.region_abbr}-kv"), "-", ""), 0, 24)
     
     # Log Analytics Workspace: log (if needed in future)
     log_analytics = "${local.resource_prefix}-log"

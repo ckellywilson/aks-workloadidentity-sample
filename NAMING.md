@@ -10,22 +10,34 @@ This deployment follows Microsoft Azure naming conventions with standardized res
 
 ### Core Naming Pattern
 ```
-<project>-<environment>-<resource-abbreviation>
+<project>-<environment>-<region>-<resource-abbreviation>
 ```
 
 ### Resource Abbreviations (Microsoft Standard)
 | Resource Type | Abbreviation | Example |
 |---------------|--------------|---------|
-| Resource Group | `rg` | `akswlid-dev-rg` |
-| AKS Cluster | `aks` | `akswlid-dev-aks` |
-| User Assigned Managed Identity | `id` | `akswlid-dev-workload-id` |
-| Storage Account | `st` | `akswliddevst` (no hyphens) |
-| Container Registry | `cr` | `akswliddevcr` (no hyphens) |
-| Virtual Network | `vnet` | `akswlid-dev-vnet` |
-| Subnet | `snet` | `akswlid-dev-snet` |
-| Network Security Group | `nsg` | `akswlid-dev-nsg` |
-| Key Vault | `kv` | `akswliddevkv` (no hyphens) |
-| Log Analytics Workspace | `log` | `akswlid-dev-log` |
+| Resource Group | `rg` | `akswlid-dev-cus-rg` |
+| AKS Cluster | `aks` | `akswlid-dev-cus-aks` |
+| User Assigned Managed Identity | `id` | `akswlid-dev-cus-workload-id` |
+| Storage Account | `st` | `akswliddevcusst` (no hyphens) |
+| Container Registry | `cr` | `akswliddevcuscr` (no hyphens) |
+| Virtual Network | `vnet` | `akswlid-dev-cus-vnet` |
+| Subnet | `snet` | `akswlid-dev-cus-snet` |
+| Network Security Group | `nsg` | `akswlid-dev-cus-nsg` |
+| Key Vault | `kv` | `akswliddevcuskv` (no hyphens) |
+| Log Analytics Workspace | `log` | `akswlid-dev-cus-log` |
+
+### Region Abbreviations
+| Region | Abbreviation | Example Usage |
+|--------|--------------|---------------|
+| Central US | `cus` | `akswlid-dev-cus-rg` |
+| East US | `eus` | `akswlid-prod-eus-rg` |
+| East US 2 | `eus2` | `akswlid-stg-eus2-rg` |
+| West US 2 | `wus2` | `akswlid-dev-wus2-rg` |
+| West Europe | `we` | `akswlid-prod-we-rg` |
+| North Europe | `ne` | `akswlid-dev-ne-rg` |
+
+**Full List**: 30+ regions supported with standard abbreviations
 
 ### Special Naming Rules
 
@@ -49,14 +61,14 @@ This deployment uses **three-tier resource group strategy** following Azure best
 
 #### 1. Application Resource Groups
 - **Purpose**: Contains application infrastructure (AKS control plane, storage, etc.)
-- **Naming**: `{project}-{environment}-rg`
-- **Examples**: `akswlid-dev-rg`, `akswlid-prod-rg`
+- **Naming**: `{project}-{environment}-{region}-rg`
+- **Examples**: `akswlid-dev-cus-rg`, `akswlid-prod-eus-rg`
 - **Management**: Managed by Terraform
 
 #### 2. AKS Infrastructure Resource Groups
 - **Purpose**: Contains AKS infrastructure (nodes, load balancers, NSGs, disks)
-- **Naming**: `{project}-{environment}-aks-nodes-rg`
-- **Examples**: `akswlid-dev-aks-nodes-rg`, `akswlid-prod-aks-nodes-rg`
+- **Naming**: `{project}-{environment}-{region}-aks-nodes-rg`
+- **Examples**: `akswlid-dev-cus-aks-nodes-rg`, `akswlid-prod-eus-aks-nodes-rg`
 - **Management**: Managed by Azure (auto-created with custom name)
 
 #### 3. Backend State Resource Group  
@@ -85,37 +97,40 @@ Update `infra/tf/terraform.tfvars`:
 ```hcl
 project_name = "myproject"  # Max 10 chars, lowercase alphanumeric
 environment  = "dev"        # dev, stg, prod, test, staging, production
+location     = "Central US" # Azure region name
 ```
 
 ### Examples
 
-**Development Environment**:
+**Development Environment (Central US)**:
 ```hcl
 project_name = "akswlid"
 environment  = "dev"
+location     = "Central US"
 ```
 
 Generated names:
-- Resource Group: `akswlid-dev-rg`
-- AKS Cluster: `akswlid-dev-aks`
-- AKS Node Resource Group: `akswlid-dev-aks-nodes-rg`
-- Storage Account: `akswliddevst`
-- Container Registry: `akswliddevcr`
-- Workload Identity: `akswlid-dev-workload-id`
-- Federated Credential: `akswlid-dev-fedcred`
+- Resource Group: `akswlid-dev-cus-rg`
+- AKS Cluster: `akswlid-dev-cus-aks`
+- AKS Node Resource Group: `akswlid-dev-cus-aks-nodes-rg`
+- Storage Account: `akswliddevcusst`
+- Container Registry: `akswliddevcuscr`
+- Workload Identity: `akswlid-dev-cus-workload-id`
+- Federated Credential: `akswlid-dev-cus-fedcred`
 
-**Production Environment**:
+**Production Environment (East US)**:
 ```hcl
 project_name = "akswlid"
 environment  = "prod"
+location     = "East US"
 ```
 
 Generated names:
-- Resource Group: `akswlid-prod-rg`
-- AKS Cluster: `akswlid-prod-aks`
-- AKS Node Resource Group: `akswlid-prod-aks-nodes-rg`
-- Storage Account: `akswlidprodst`
-- Container Registry: `akswlidprodcr`
-- Workload Identity: `akswlid-prod-workload-id`
+- Resource Group: `akswlid-prod-eus-rg`
+- AKS Cluster: `akswlid-prod-eus-aks`
+- AKS Node Resource Group: `akswlid-prod-eus-aks-nodes-rg`
+- Storage Account: `akswlidprodeusst`
+- Container Registry: `akswlidprodeuscr`
+- Workload Identity: `akswlid-prod-eus-workload-id`
 
 **📖 Complete details**: See [README.md Configuration Reference](README.md#-configuration-reference)
