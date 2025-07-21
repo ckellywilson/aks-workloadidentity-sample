@@ -6,3 +6,4 @@ resource_group_name  = "tfstate-mgmt-rg"
 storage_account_name = "tfstate93025"  # Will be replaced by deployment script
 container_name       = "tfstate"
 key                  = "aks-workloadidentity/terraform.tfstate"
+use_azuread_auth     = true  # Use Azure AD authentication instead of access keys

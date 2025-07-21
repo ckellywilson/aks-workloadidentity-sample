@@ -77,6 +77,7 @@ create_state_storage() {
             if az storage account show --name "$EXISTING_STORAGE_ACCOUNT" --resource-group "$RESOURCE_GROUP_NAME" &> /dev/null; then
                 print_status "Storage account $EXISTING_STORAGE_ACCOUNT exists and will be used."
                 STORAGE_ACCOUNT_NAME="$EXISTING_STORAGE_ACCOUNT"
+                configure_storage_access  # Ensure current IP has access
                 return 0  # Exit early, no need to create anything
             else
                 print_warning "Storage account $EXISTING_STORAGE_ACCOUNT from backend.hcl does not exist."
@@ -98,6 +99,7 @@ create_state_storage() {
                 print_status "Using existing storage account: $STORAGE_ACCOUNT_NAME"
                 # Update backend.hcl to point to this account
                 update_backend_config
+                configure_storage_access  # Ensure current IP has access
                 return 0
             fi
         fi
@@ -116,11 +118,72 @@ create_state_storage() {
     # Create storage account if it doesn't exist
     if ! az storage account show --name $STORAGE_ACCOUNT_NAME --resource-group $RESOURCE_GROUP_NAME &> /dev/null; then
         print_status "Creating storage account for Terraform state..."
+        
+        # Get current public IP for firewall rules
+        local detected_ips
+        mapfile -t detected_ips < <(detect_external_ips)
+        
+        if [ ${#detected_ips[@]} -eq 0 ]; then
+            print_warning "Could not determine any external IPs. Using full public access."
+            PUBLIC_ACCESS="Enabled"
+            DEFAULT_ACTION="Allow"
+        else
+            print_status "Will configure firewall for ${#detected_ips[@]} detected IP(s)"
+            PUBLIC_ACCESS="Enabled"  # Required for IP-based rules
+            DEFAULT_ACTION="Deny"
+        fi
+        
         az storage account create \
             --resource-group $RESOURCE_GROUP_NAME \
             --name $STORAGE_ACCOUNT_NAME \
             --sku Standard_LRS \
-            --encryption-services blob
+            --encryption-services blob \
+            --allow-shared-key-access false \
+            --allow-blob-public-access false \
+            --public-network-access $PUBLIC_ACCESS \
+            --min-tls-version TLS1_2 \
+            --default-action $DEFAULT_ACTION
+        
+        # Add IP-based firewall rules for all detected IPs
+        if [ ${#detected_ips[@]} -gt 0 ]; then
+            print_status "Configuring firewall rules for detected IPs..."
+            for ip in "${detected_ips[@]}"; do
+                print_status "Adding firewall rule for IP: $ip"
+                az storage account network-rule add \
+                    --resource-group $RESOURCE_GROUP_NAME \
+                    --account-name $STORAGE_ACCOUNT_NAME \
+                    --ip-address $ip \
+                    --output none || print_warning "Failed to add IP rule for $ip"
+            done
+            print_status "Waiting 10 seconds for firewall rules to propagate..."
+            sleep 10
+        fi
+        
+        # Allow Azure services (required for some Azure integrations)
+        az storage account update \
+            --resource-group $RESOURCE_GROUP_NAME \
+            --name $STORAGE_ACCOUNT_NAME \
+            --bypass AzureServices \
+            --output none
+        
+        # Ensure current user has required RBAC permissions
+        print_status "Configuring RBAC permissions for Terraform state access..."
+        CURRENT_USER=$(az account show --query user.name -o tsv)
+        STORAGE_ACCOUNT_ID="/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$RESOURCE_GROUP_NAME/providers/Microsoft.Storage/storageAccounts/$STORAGE_ACCOUNT_NAME"
+        
+        # Assign Storage Blob Data Contributor role (required for state file access)
+        az role assignment create \
+            --assignee "$CURRENT_USER" \
+            --role "Storage Blob Data Contributor" \
+            --scope "$STORAGE_ACCOUNT_ID" \
+            --output none 2>/dev/null || true
+            
+        # Assign Storage Account Contributor role (required for container operations)
+        az role assignment create \
+            --assignee "$CURRENT_USER" \
+            --role "Storage Account Contributor" \
+            --scope "$STORAGE_ACCOUNT_ID" \
+            --output none 2>/dev/null || true
     fi
     
     # Create container if it doesn't exist
@@ -129,12 +192,231 @@ create_state_storage() {
         --account-name $STORAGE_ACCOUNT_NAME \
         --auth-mode login > /dev/null 2>&1 || true
     
+    # Check if running in dev container and provide Portal guidance
+    check_dev_container_ip_guidance
+    
     # Update backend configuration
     update_backend_config
     
     print_status "Terraform state storage is ready."
     print_status "Storage Account: $STORAGE_ACCOUNT_NAME"
     print_status "Resource Group: $RESOURCE_GROUP_NAME"
+}
+
+# Detect multiple potential external IPs for dev containers
+detect_external_ips() {
+    local ips=()
+    
+    print_status "Detecting potential external IP addresses..."
+    
+    # Method 1: Primary IP detection service
+    local ip1=$(curl -s https://api.ipify.org 2>/dev/null)
+    if [ ! -z "$ip1" ]; then
+        ips+=("$ip1")
+        print_status "Detected IP via ipify.org: $ip1"
+    fi
+    
+    # Method 2: Alternative IP detection service
+    local ip2=$(curl -s http://checkip.amazonaws.com 2>/dev/null | tr -d '\n')
+    if [ ! -z "$ip2" ] && [[ ! " ${ips[@]} " =~ " ${ip2} " ]]; then
+        ips+=("$ip2")
+        print_status "Detected IP via AWS checkip: $ip2"
+    fi
+    
+    # Method 3: Another alternative service
+    local ip3=$(curl -s https://icanhazip.com 2>/dev/null | tr -d '\n')
+    if [ ! -z "$ip3" ] && [[ ! " ${ips[@]} " =~ " ${ip3} " ]]; then
+        ips+=("$ip3")
+        print_status "Detected IP via icanhazip.com: $ip3"
+    fi
+    
+    # Method 4: Check environment variables that might contain host info
+    if [ ! -z "$CODESPACE_NAME" ]; then
+        print_status "Running in GitHub Codespace: $CODESPACE_NAME"
+        # Codespaces might have specific IP patterns
+    fi
+    
+    if [ ! -z "$REMOTE_CONTAINERS" ]; then
+        print_status "Running in VS Code dev container"
+    fi
+    
+    # Print summary
+    if [ ${#ips[@]} -eq 0 ]; then
+        print_warning "No external IPs detected"
+        return 1
+    else
+        print_status "Detected ${#ips[@]} potential external IP(s): ${ips[*]}"
+        printf '%s\n' "${ips[@]}"
+    fi
+}
+
+# Check if running in dev container and provide IP guidance
+check_dev_container_ip_guidance() {
+    local is_dev_container=false
+    
+    # Check for dev container indicators
+    if [ ! -z "$REMOTE_CONTAINERS" ] || [ ! -z "$CODESPACE_NAME" ] || [ -f /.dockerenv ]; then
+        is_dev_container=true
+    fi
+    
+    if [ "$is_dev_container" = true ]; then
+        print_warning "==== DEV CONTAINER DETECTED ===="
+        print_status "You are running in a development container environment."
+        print_status "The IP addresses detected automatically may not match what Azure sees."
+        print_status ""
+        print_status "To ensure proper access to the Terraform backend storage:"
+        print_status ""
+        print_status "1. Open the Azure Portal: https://portal.azure.com"
+        print_status "2. Navigate to: Storage accounts → $STORAGE_ACCOUNT_NAME → Networking"
+        print_status "3. Look for 'Client IP address' or recent access attempts"
+        print_status "4. Note the IP address shown by Azure Portal"
+        print_status "5. If different from detected IPs, manually add it using:"
+        print_status "   az storage account network-rule add \\"
+        print_status "     --resource-group $RESOURCE_GROUP_NAME \\"
+        print_status "     --account-name $STORAGE_ACCOUNT_NAME \\"
+        print_status "     --ip-address <PORTAL_SHOWN_IP>"
+        print_status ""
+        print_status "Resource Group: $RESOURCE_GROUP_NAME"
+        print_status "Storage Account: $STORAGE_ACCOUNT_NAME"
+        print_status ""
+        
+        # Show currently detected IPs for comparison
+        local detected_ips
+        mapfile -t detected_ips < <(detect_external_ips 2>/dev/null || echo "")
+        if [ ${#detected_ips[@]} -gt 0 ]; then
+            print_status "Currently detected IP(s): ${detected_ips[*]}"
+        fi
+        
+        print_warning "Press Enter to continue after verifying/adding your IP in the Portal..."
+        read -r
+        
+        print_status "Optional: If the Azure Portal shows a different IP than detected,"
+        print_status "you can add it now to ensure backend access works."
+        read -p "Enter the IP shown in Azure Portal (or press Enter to skip): " PORTAL_IP
+        
+        if [ ! -z "$PORTAL_IP" ]; then
+            # Check if this IP is already added
+            local existing_ips
+            mapfile -t existing_ips < <(az storage account network-rule list \
+                --resource-group $RESOURCE_GROUP_NAME \
+                --account-name $STORAGE_ACCOUNT_NAME \
+                --query "ipRules[].ipAddressOrRange" \
+                --output tsv 2>/dev/null || echo "")
+            
+            if [[ ! " ${existing_ips[@]} " =~ " ${PORTAL_IP} " ]]; then
+                print_status "Adding Portal IP $PORTAL_IP to storage account firewall..."
+                if az storage account network-rule add \
+                    --resource-group $RESOURCE_GROUP_NAME \
+                    --account-name $STORAGE_ACCOUNT_NAME \
+                    --ip-address $PORTAL_IP \
+                    --output none 2>/dev/null; then
+                    print_status "✓ Portal IP $PORTAL_IP added successfully"
+                    print_status "Waiting 10 seconds for firewall rules to propagate..."
+                    sleep 10
+                else
+                    print_warning "✗ Failed to add Portal IP $PORTAL_IP"
+                fi
+            else
+                print_status "✓ Portal IP $PORTAL_IP already allowed in firewall"
+            fi
+        fi
+    fi
+}
+
+# Configure IP-based access for existing storage account
+configure_storage_access() {
+    if [ -z "$STORAGE_ACCOUNT_NAME" ]; then
+        print_error "Storage account name not set"
+        return 1
+    fi
+    
+    print_status "Configuring network access for storage account..."
+    
+    # Get all potential external IPs
+    local detected_ips
+    mapfile -t detected_ips < <(detect_external_ips)
+    
+    if [ ${#detected_ips[@]} -eq 0 ]; then
+        print_warning "Could not determine any external IPs. Manual configuration may be required."
+        return 1
+    fi
+    
+    # Get existing firewall rules
+    local existing_ips
+    mapfile -t existing_ips < <(az storage account network-rule list \
+        --resource-group $RESOURCE_GROUP_NAME \
+        --account-name $STORAGE_ACCOUNT_NAME \
+        --query "ipRules[].ipAddressOrRange" \
+        --output tsv 2>/dev/null || echo "")
+    
+    # Add each detected IP if not already present
+    local added_count=0
+    for ip in "${detected_ips[@]}"; do
+        if [[ ! " ${existing_ips[@]} " =~ " ${ip} " ]]; then
+            print_status "Adding IP $ip to storage account firewall..."
+            if az storage account network-rule add \
+                --resource-group $RESOURCE_GROUP_NAME \
+                --account-name $STORAGE_ACCOUNT_NAME \
+                --ip-address $ip \
+                --output none 2>/dev/null; then
+                print_status "✓ IP $ip added successfully"
+                ((added_count++))
+            else
+                print_warning "✗ Failed to add IP $ip"
+            fi
+        else
+            print_status "✓ IP $ip already allowed in firewall"
+        fi
+    done
+    
+    if [ $added_count -gt 0 ]; then
+        print_status "Added $added_count new IP(s) to storage account firewall"
+        print_status "Waiting 10 seconds for firewall rules to propagate..."
+        sleep 10
+    fi
+    
+    # Show current firewall status
+    print_status "Current firewall rules:"
+    az storage account network-rule list \
+        --resource-group $RESOURCE_GROUP_NAME \
+        --account-name $STORAGE_ACCOUNT_NAME \
+        --query "ipRules[].ipAddressOrRange" \
+        --output table 2>/dev/null || print_warning "Could not retrieve current rules"
+    
+    # Provide dev container guidance if needed
+    check_dev_container_ip_guidance
+}
+
+# Helper function to add IP manually if Terraform init fails
+add_ip_manually() {
+    if [ -z "$STORAGE_ACCOUNT_NAME" ]; then
+        print_error "Storage account name not set"
+        return 1
+    fi
+    
+    print_status "Manual IP addition helper"
+    print_status "If Terraform backend access fails, you can manually add your IP:"
+    print_status ""
+    
+    read -p "Enter the IP address shown in Azure Portal: " MANUAL_IP
+    
+    if [ ! -z "$MANUAL_IP" ]; then
+        print_status "Adding IP $MANUAL_IP to storage account firewall..."
+        if az storage account network-rule add \
+            --resource-group $RESOURCE_GROUP_NAME \
+            --account-name $STORAGE_ACCOUNT_NAME \
+            --ip-address $MANUAL_IP \
+            --output none 2>/dev/null; then
+            print_status "✓ IP $MANUAL_IP added successfully"
+            print_status "Waiting 10 seconds for firewall rules to propagate..."
+            sleep 10
+            print_status "You can now retry: terraform init -backend-config=backend.hcl"
+        else
+            print_error "✗ Failed to add IP $MANUAL_IP"
+        fi
+    else
+        print_warning "No IP address provided"
+    fi
 }
 
 # Update backend configuration with current storage account
@@ -162,7 +444,50 @@ update_backend_config() {
 # Initialize Terraform
 terraform_init() {
     print_status "Initializing Terraform..."
-    terraform init -backend-config=backend.hcl
+    
+    # Get storage account name from backend config for error messages
+    local BACKEND_STORAGE_ACCOUNT=""
+    if [ -f backend.hcl ]; then
+        BACKEND_STORAGE_ACCOUNT=$(grep "storage_account_name" backend.hcl | sed 's/.*= *"\([^"]*\)".*/\1/')
+    fi
+    
+    if terraform init -backend-config=backend.hcl; then
+        print_status "✓ Terraform backend initialized successfully"
+    else
+        print_error "✗ Terraform backend initialization failed"
+        print_status ""
+        print_status "This is likely due to network access restrictions on the storage account."
+        print_status "If you're in a dev container, the IP detected automatically may differ"
+        print_status "from what Azure services actually see."
+        print_status ""
+        print_status "Troubleshooting steps:"
+        if [ ! -z "$BACKEND_STORAGE_ACCOUNT" ]; then
+            print_status "1. Check Azure Portal → Storage accounts → $BACKEND_STORAGE_ACCOUNT → Networking"
+        else
+            print_status "1. Check Azure Portal → Storage accounts → [your-storage-account] → Networking"
+        fi
+        print_status "2. Look for your actual IP address in the Portal"
+        print_status "3. Add it manually using the helper function below"
+        print_status ""
+        
+        read -p "Would you like to add an IP address manually? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            # Set storage account name for the helper function
+            if [ ! -z "$BACKEND_STORAGE_ACCOUNT" ]; then
+                STORAGE_ACCOUNT_NAME="$BACKEND_STORAGE_ACCOUNT"
+                RESOURCE_GROUP_NAME="tfstate-mgmt-rg"
+                add_ip_manually
+            else
+                print_error "Could not determine storage account name from backend configuration"
+            fi
+            print_status "Retrying Terraform initialization..."
+            terraform init -backend-config=backend.hcl
+        else
+            print_error "Terraform initialization failed. Please resolve network access issues."
+            exit 1
+        fi
+    fi
 }
 
 # Plan Terraform deployment
@@ -242,3 +567,17 @@ main() {
 
 # Run main function
 main "$@"
+
+# Standalone functions for troubleshooting
+# Usage: source deploy.sh && troubleshoot_ip
+troubleshoot_ip() {
+    RESOURCE_GROUP_NAME="tfstate-mgmt-rg"
+    EXISTING_STORAGE_ACCOUNT=$(grep "storage_account_name" backend.hcl 2>/dev/null | sed 's/.*= *"\([^"]*\)".*/\1/')
+    if [ ! -z "$EXISTING_STORAGE_ACCOUNT" ] && [ "$EXISTING_STORAGE_ACCOUNT" != "tfstateXXXXXXXX" ]; then
+        STORAGE_ACCOUNT_NAME="$EXISTING_STORAGE_ACCOUNT"
+        print_status "Troubleshooting IP access for storage account: $STORAGE_ACCOUNT_NAME"
+        add_ip_manually
+    else
+        print_error "No storage account found in backend.hcl"
+    fi
+}
