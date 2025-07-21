@@ -209,23 +209,56 @@ detect_external_ips() {
     
     print_status "Detecting potential external IP addresses..."
     
+    # Helper function to check if IP is already in array
+    ip_in_array() {
+        local needle="$1"
+        local element
+        for element in "${ips[@]}"; do
+            [[ "$element" == "$needle" ]] && return 0
+        done
+        return 1
+    }
+    
+    # Helper function to validate IP address format
+    is_valid_ip() {
+        local ip="$1"
+        # Basic format check: 4 octets separated by dots
+        if [[ ! "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            return 1
+        fi
+        
+        # Check each octet is between 0-255
+        IFS='.' read -ra octets <<< "$ip"
+        if [ ${#octets[@]} -ne 4 ]; then
+            return 1
+        fi
+        
+        for octet in "${octets[@]}"; do
+            if [[ ! "$octet" =~ ^[0-9]+$ ]] || [ "$octet" -gt 255 ] || [ "$octet" -lt 0 ]; then
+                return 1
+            fi
+        done
+        
+        return 0
+    }
+    
     # Method 1: Primary IP detection service
-    local ip1=$(curl -s https://api.ipify.org 2>/dev/null)
-    if [ ! -z "$ip1" ]; then
+    local ip1=$(curl -s --connect-timeout 10 https://api.ipify.org 2>/dev/null)
+    if [ ! -z "$ip1" ] && is_valid_ip "$ip1"; then
         ips+=("$ip1")
         print_status "Detected IP via ipify.org: $ip1"
     fi
     
     # Method 2: Alternative IP detection service
-    local ip2=$(curl -s http://checkip.amazonaws.com 2>/dev/null | tr -d '\n')
-    if [ ! -z "$ip2" ] && [[ ! " ${ips[@]} " =~ " ${ip2} " ]]; then
+    local ip2=$(curl -s --connect-timeout 10 http://checkip.amazonaws.com 2>/dev/null | tr -d '\n\r')
+    if [ ! -z "$ip2" ] && is_valid_ip "$ip2" && ! ip_in_array "$ip2"; then
         ips+=("$ip2")
         print_status "Detected IP via AWS checkip: $ip2"
     fi
     
     # Method 3: Another alternative service
-    local ip3=$(curl -s https://icanhazip.com 2>/dev/null | tr -d '\n')
-    if [ ! -z "$ip3" ] && [[ ! " ${ips[@]} " =~ " ${ip3} " ]]; then
+    local ip3=$(curl -s --connect-timeout 10 https://icanhazip.com 2>/dev/null | tr -d '\n\r')
+    if [ ! -z "$ip3" ] && is_valid_ip "$ip3" && ! ip_in_array "$ip3"; then
         ips+=("$ip3")
         print_status "Detected IP via icanhazip.com: $ip3"
     fi
@@ -298,17 +331,27 @@ check_dev_container_ip_guidance() {
             # Check if this IP is already added
             local existing_ips
             mapfile -t existing_ips < <(az storage account network-rule list \
-                --resource-group $RESOURCE_GROUP_NAME \
-                --account-name $STORAGE_ACCOUNT_NAME \
+                --resource-group "$RESOURCE_GROUP_NAME" \
+                --account-name "$STORAGE_ACCOUNT_NAME" \
                 --query "ipRules[].ipAddressOrRange" \
                 --output tsv 2>/dev/null || echo "")
             
-            if [[ ! " ${existing_ips[@]} " =~ " ${PORTAL_IP} " ]]; then
+            # Helper function to check if IP is already in existing rules
+            portal_ip_exists() {
+                local needle="$1"
+                local element
+                for element in "${existing_ips[@]}"; do
+                    [[ "$element" == "$needle" ]] && return 0
+                done
+                return 1
+            }
+            
+            if ! portal_ip_exists "$PORTAL_IP"; then
                 print_status "Adding Portal IP $PORTAL_IP to storage account firewall..."
                 if az storage account network-rule add \
-                    --resource-group $RESOURCE_GROUP_NAME \
-                    --account-name $STORAGE_ACCOUNT_NAME \
-                    --ip-address $PORTAL_IP \
+                    --resource-group "$RESOURCE_GROUP_NAME" \
+                    --account-name "$STORAGE_ACCOUNT_NAME" \
+                    --ip-address "$PORTAL_IP" \
                     --output none 2>/dev/null; then
                     print_status "✓ Portal IP $PORTAL_IP added successfully"
                     print_status "Waiting 10 seconds for firewall rules to propagate..."
@@ -344,20 +387,30 @@ configure_storage_access() {
     # Get existing firewall rules
     local existing_ips
     mapfile -t existing_ips < <(az storage account network-rule list \
-        --resource-group $RESOURCE_GROUP_NAME \
-        --account-name $STORAGE_ACCOUNT_NAME \
+        --resource-group "$RESOURCE_GROUP_NAME" \
+        --account-name "$STORAGE_ACCOUNT_NAME" \
         --query "ipRules[].ipAddressOrRange" \
         --output tsv 2>/dev/null || echo "")
+    
+    # Helper function to check if IP is already in existing rules
+    ip_exists_in_rules() {
+        local needle="$1"
+        local element
+        for element in "${existing_ips[@]}"; do
+            [[ "$element" == "$needle" ]] && return 0
+        done
+        return 1
+    }
     
     # Add each detected IP if not already present
     local added_count=0
     for ip in "${detected_ips[@]}"; do
-        if [[ ! " ${existing_ips[@]} " =~ " ${ip} " ]]; then
+        if ! ip_exists_in_rules "$ip"; then
             print_status "Adding IP $ip to storage account firewall..."
             if az storage account network-rule add \
-                --resource-group $RESOURCE_GROUP_NAME \
-                --account-name $STORAGE_ACCOUNT_NAME \
-                --ip-address $ip \
+                --resource-group "$RESOURCE_GROUP_NAME" \
+                --account-name "$STORAGE_ACCOUNT_NAME" \
+                --ip-address "$ip" \
                 --output none 2>/dev/null; then
                 print_status "✓ IP $ip added successfully"
                 ((added_count++))
@@ -378,8 +431,8 @@ configure_storage_access() {
     # Show current firewall status
     print_status "Current firewall rules:"
     az storage account network-rule list \
-        --resource-group $RESOURCE_GROUP_NAME \
-        --account-name $STORAGE_ACCOUNT_NAME \
+        --resource-group "$RESOURCE_GROUP_NAME" \
+        --account-name "$STORAGE_ACCOUNT_NAME" \
         --query "ipRules[].ipAddressOrRange" \
         --output table 2>/dev/null || print_warning "Could not retrieve current rules"
     
