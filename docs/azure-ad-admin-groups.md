@@ -1,6 +1,18 @@
 # Azure AD Group Admin Access Configuration
 
-This document explains how to configure Azure AD groups for admin access to the AKS cluster.
+This document explains how to configure Azure AD groups 3. Try getting fresh credentials: `az aks get-credentials --resource-group akswlid-dev-rg --name akswlid-dev-aks --overwrite-existing`
+
+## 📚 Related Documentation
+
+- [📚 Documentation Hub](README.md) - Complete navigation guide
+- [🔍 Azure Federated Token File](azure-federated-token-file.md) - Understanding workload identity tokens
+- [🧪 Examples Guide](../examples/README.md) - Test your deployment
+- [🏗️ Infrastructure Guide](../infra/tf/modules/README.md) - Architecture details
+- [📖 Main README](../README.md) - Project overview
+
+---
+
+💡 **Next Steps**: After configuring admin access, test your deployment with the [Examples Guide](../examples/README.md).or admin access to the AKS cluster.
 
 ## Quick Start
 

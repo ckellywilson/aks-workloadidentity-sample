@@ -1,6 +1,18 @@
 # AKS Workload Identity Sample
 
-This repository provides a production-ready Terraform configuration for deploying Azure Kubernetes Service (AKS) with Workload Identity, Azure Container Registry (ACR), and Azure Storage. The deployment follows Azure and Terraform best practices with a modular architecture.
+This repository provides## 📚 Documentation
+
+This repository includes comprehensive documentation to help you understand, deploy, and troubleshoot the AKS Workload Identity solution:
+
+**🗂️ [Documentation Hub](docs/README.md)** - Start here for complete navigation
+
+### Quick Access
+- 🔐 **[Azure AD Admin Groups](docs/azure-ad-admin-groups.md)** - Required access setup
+- 🔍 **[Azure Federated Token File](docs/azure-federated-token-file.md)** - Token mechanism deep dive  
+- 🧪 **[Examples Guide](examples/README.md)** - Test cases and validation
+- 🏗️ **[Infrastructure Guide](infra/tf/modules/README.md)** - Architecture details
+
+> 💡 **Detailed guide**: [Azure AD Admin Groups Configuration](docs/azure-ad-admin-groups.md)a production-ready Terraform configuration for deploying Azure Kubernetes Service (AKS) with Workload Identity, Azure Container Registry (ACR), and Azure Storage. The deployment follows Azure and Terraform best practices with a modular architecture.
 
 ## 🚀 Quick Start
 
@@ -104,12 +116,14 @@ aks-workloadidentity-sample/
 ├── 📁 .copilot/                    # Development and AI instructions
 │   ├── prompts.md                  # GitHub Copilot development guide
 │   └── security-config.md          # Security configuration reference
-├── 📁 docs/                        # Detailed documentation
-│   └── azure-ad-admin-groups.md    # Azure AD configuration guide
-├── 📁 examples/                    # Example applications and pods
-│   ├── README.md
-│   ├── test-pod.yaml              # Test workload identity
-│   └── sample-app.yaml            # Sample application
+├── 📁 docs/                        # 📚 Comprehensive documentation hub
+│   ├── README.md                   # 🗂️ Master documentation index
+│   ├── azure-ad-admin-groups.md    # 🔐 Azure AD group setup guide
+│   └── azure-federated-token-file.md # 🔍 Token mechanism deep dive
+├── 📁 examples/                    # 🧪 Example applications and test cases
+│   ├── README.md                   # 📖 Examples and testing guide
+│   ├── test-storage-access.yaml   # 🔐 Workload identity connectivity test
+│   └── inspect-token.yaml         # 🔍 Token inspection and debugging
 └── 📁 infra/tf/                   # Terraform deployment
     ├── main.tf                    # Main configuration
     ├── variables.tf               # Input variables
@@ -378,9 +392,13 @@ terraform destroy
 
 ## 📚 Additional Resources
 
-### Documentation
+### 📖 Complete Documentation Suite
+- 🗂️ **[Documentation Hub](docs/README.md)**: Master index and navigation guide
 - 📖 **[Naming Conventions](NAMING.md)**: Resource naming guidelines (quick reference)
 - 🔐 **[Azure AD Groups Guide](docs/azure-ad-admin-groups.md)**: Detailed admin access setup
+- 🔍 **[Token Deep Dive](docs/azure-federated-token-file.md)**: Understanding workload identity internals
+- 🧪 **[Examples & Testing](examples/README.md)**: Validation and troubleshooting examples
+- 🏗️ **[Infrastructure Guide](infra/tf/modules/README.md)**: Architecture and module documentation
 - 🤖 **[Development Guide](.copilot/prompts.md)**: Instructions for developers and AI
 
 ### Azure Documentation

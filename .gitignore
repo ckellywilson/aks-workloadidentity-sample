@@ -30,6 +30,11 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Archive files
+*.zip
+*.tar.gz
+*.tar
+
 # Sensitive files
 secrets/
 *.pem

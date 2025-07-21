@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: storage-access-test
+  namespace: default
+  labels:
+    azure.workload.identity/use: "true"
+spec:
+  serviceAccountName: workload-identity-sa
+  containers:
+  - name: test-container
+    image: python:3.9-slim
+    command: ["/bin/bash"]
+    args: 
+    - "-c"
+    - |
+      pip install azure-identity azure-storage-blob &&
+      python3 << 'PYTHONEOF'
+      import os
+      from azure.identity import DefaultAzureCredential
+      from azure.storage.blob import BlobServiceClient
+      
+      print("=== Environment Variables ===")
+      for key in ['AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_FEDERATED_TOKEN_FILE', 'AZURE_AUTHORITY_HOST']:
+          print(f"{key}: {os.environ.get(key, 'NOT SET')}")
+      
+      print("\n=== Testing Azure Storage Access ===")
+      try:
+          # Use DefaultAzureCredential which should pick up workload identity
+          credential = DefaultAzureCredential()
+          
+          # Connect to storage account
+          storage_account_name = "akswliddevcentralusst"
+          account_url = f"https://{storage_account_name}.blob.core.windows.net"
+          
+          blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
+          
+          # Try to list containers
+          print("Attempting to list containers...")
+          containers = blob_service_client.list_containers()
+          container_names = [container.name for container in containers]
+          print(f"Found containers: {container_names}")
+          
+          # Try to create a test blob in the app-data container
+          print("Attempting to create a test blob...")
+          container_client = blob_service_client.get_container_client("app-data")
+          blob_client = container_client.get_blob_client("test-workload-identity.txt")
+          
+          test_content = "This blob was created using workload identity!"
+          blob_client.upload_blob(test_content, overwrite=True)
+          print("✅ Successfully created test blob!")
+          
+          # Try to read it back
+          blob_data = blob_client.download_blob().readall().decode('utf-8')
+          print(f"✅ Successfully read back: {blob_data}")
+          
+          print("🎉 WORKLOAD IDENTITY TEST SUCCESSFUL! 🎉")
+          
+      except Exception as e:
+          print(f"❌ Error: {e}")
+          print("WORKLOAD IDENTITY TEST FAILED")
+          import traceback
+          traceback.print_exc()
+      
+      print("\n=== ALL ENVIRONMENT VARIABLES ===")
+      for key, value in sorted(os.environ.items()):
+          print(f"{key}={value}")
+      
+      print("\n=== Container exiting ===")
+      PYTHONEOF
+  restartPolicy: Never

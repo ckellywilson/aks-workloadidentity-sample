@@ -18,6 +18,15 @@
 			"dockerComposeService": "app",
 			"dockerComposeRemoveVolumes": true
 		},
+		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+			"version": "latest",
+			"installMinikube": false,
+			"installKubectl": true,
+			"installHelm": true,
+			"installKustomize": true,
+			"installSkaffold": true,
+			"installK9s": true
+		},
 		"ghcr.io/devcontainers/features/terraform": {
 			"version": "latest",
 			"installAzureRMProvider": true,

@@ -65,9 +65,47 @@ create_state_storage() {
     
     # Variables for state storage - Following Azure naming standards
     RESOURCE_GROUP_NAME="tfstate-mgmt-rg"  # terraform state management resource group
-    STORAGE_ACCOUNT_NAME="tfstate$(date +%s | tail -c 6)"
     CONTAINER_NAME="tfstate"
     LOCATION="Central US"
+    
+    # Check if there's already a backend.hcl with existing storage account
+    if [ -f backend.hcl ]; then
+        EXISTING_STORAGE_ACCOUNT=$(grep "storage_account_name" backend.hcl | sed 's/.*= *"\([^"]*\)".*/\1/')
+        if [ ! -z "$EXISTING_STORAGE_ACCOUNT" ] && [ "$EXISTING_STORAGE_ACCOUNT" != "tfstateXXXXXXXX" ]; then
+            print_status "Found existing storage account in backend.hcl: $EXISTING_STORAGE_ACCOUNT"
+            # Check if the storage account actually exists
+            if az storage account show --name "$EXISTING_STORAGE_ACCOUNT" --resource-group "$RESOURCE_GROUP_NAME" &> /dev/null; then
+                print_status "Storage account $EXISTING_STORAGE_ACCOUNT exists and will be used."
+                STORAGE_ACCOUNT_NAME="$EXISTING_STORAGE_ACCOUNT"
+                return 0  # Exit early, no need to create anything
+            else
+                print_warning "Storage account $EXISTING_STORAGE_ACCOUNT from backend.hcl does not exist."
+            fi
+        fi
+    fi
+    
+    # Check for any existing storage accounts in the resource group
+    if az group show --name "$RESOURCE_GROUP_NAME" &> /dev/null; then
+        EXISTING_ACCOUNTS=$(az storage account list --resource-group "$RESOURCE_GROUP_NAME" --query "[?contains(name, 'tfstate')].name" -o tsv)
+        if [ ! -z "$EXISTING_ACCOUNTS" ]; then
+            print_status "Found existing terraform state storage accounts:"
+            echo "$EXISTING_ACCOUNTS"
+            FIRST_ACCOUNT=$(echo "$EXISTING_ACCOUNTS" | head -n 1)
+            read -p "Do you want to use existing storage account '$FIRST_ACCOUNT'? (Y/n): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+                STORAGE_ACCOUNT_NAME="$FIRST_ACCOUNT"
+                print_status "Using existing storage account: $STORAGE_ACCOUNT_NAME"
+                # Update backend.hcl to point to this account
+                update_backend_config
+                return 0
+            fi
+        fi
+    fi
+    
+    # If we get here, create a new storage account
+    STORAGE_ACCOUNT_NAME="tfstate$(date +%s | tail -c 6)"
+    print_status "Creating new storage account: $STORAGE_ACCOUNT_NAME"
     
     # Create resource group if it doesn't exist
     if ! az group show --name $RESOURCE_GROUP_NAME &> /dev/null; then
@@ -91,11 +129,25 @@ create_state_storage() {
         --account-name $STORAGE_ACCOUNT_NAME \
         --auth-mode login > /dev/null 2>&1 || true
     
-    # Create backend configuration from template
-    print_status "Creating backend configuration..."
+    # Update backend configuration
+    update_backend_config
+    
+    print_status "Terraform state storage is ready."
+    print_status "Storage Account: $STORAGE_ACCOUNT_NAME"
+    print_status "Resource Group: $RESOURCE_GROUP_NAME"
+}
+
+# Update backend configuration with current storage account
+update_backend_config() {
+    print_status "Updating backend configuration..."
     if [ ! -f backend.hcl.template ]; then
         print_error "Backend configuration template not found!"
         exit 1
+    fi
+    
+    # Make backend.hcl writable if it exists
+    if [ -f backend.hcl ]; then
+        chmod 644 backend.hcl
     fi
     
     cp backend.hcl.template backend.hcl
@@ -103,9 +155,8 @@ create_state_storage() {
     sed -i.bak "s/resource_group_name  = \"tfstate-mgmt-rg\"/resource_group_name  = \"$RESOURCE_GROUP_NAME\"/" backend.hcl
     rm -f backend.hcl.bak
     
-    print_status "Terraform state storage is ready."
-    print_status "Storage Account: $STORAGE_ACCOUNT_NAME"
-    print_status "Resource Group: $RESOURCE_GROUP_NAME"
+    # Make backend.hcl read-only to prevent accidental changes
+    chmod 444 backend.hcl
 }
 
 # Initialize Terraform

@@ -1,7 +1,11 @@
 #!/bin/bash
 
 # Quick n    echo "📚 Additional Documentation:"
-    echo "  🔐 Azure AD Groups Setup:        docs/azure-ad-admin-groups.md"
+    echo "  � Documentation Hub:            docs/README.md (START HERE)"
+    echo "  �🔐 Azure AD Groups Setup:        docs/azure-ad-admin-groups.md"
+    echo "  🔍 Token Mechanism Deep Dive:    docs/azure-federated-token-file.md"
+    echo "  🧪 Examples & Testing:           examples/README.md"
+    echo "  🏗️ Infrastructure Guide:         infra/tf/modules/README.md"
     echo "  🤖 Development Instructions:     .copilot/prompts.md"
     echo "  📝 Naming Conventions:           NAMING.md"ation script for AKS Workload Identity deployment
 
