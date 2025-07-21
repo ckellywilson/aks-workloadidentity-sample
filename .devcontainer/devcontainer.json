@@ -59,14 +59,12 @@
 				"github.vscode-github-actions"
 			]
 		}
-		// Features to add to the dev container. More info: https://containers.dev/features.
-		// "features": {},
-		// Use 'forwardPorts' to make a list of ports inside the container available locally.
-		// "forwardPorts": [],
-		// Use 'postCreateCommand' to run commands after the container is created.
-		// "postCreateCommand": "pip3 install --user -r requirements.txt",
-		// Configure tool-specific properties.
-		// "customizations": {},
-		// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-		// "remoteUser": "root"
-	}
+	},
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// This installs kubelogin (Azure Kubernetes authentication helper) and verifies the dev environment
+	"postCreateCommand": "curl -L https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip -o /tmp/kubelogin.zip && sudo unzip -q /tmp/kubelogin.zip -d /tmp && sudo mv /tmp/bin/linux_amd64/kubelogin /usr/local/bin/ && sudo chmod +x /usr/local/bin/kubelogin && sudo rm -rf /tmp/kubelogin.zip /tmp/bin && echo '✅ kubelogin installed successfully!' && .devcontainer/verify-setup.sh"
+	// Configure tool-specific properties.
+	// "customizations": {},
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
