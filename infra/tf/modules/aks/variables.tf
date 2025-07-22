@@ -104,3 +104,8 @@ variable "admin_group_object_ids" {
   type        = list(string)
   default     = []
 }
+
+variable "aks_subnet_id" {
+  description = "ID of the subnet for AKS nodes"
+  type        = string
+}

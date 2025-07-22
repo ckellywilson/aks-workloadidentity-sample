@@ -17,9 +17,10 @@ resource "azurerm_kubernetes_cluster" "main" {
   local_account_disabled = var.disable_local_accounts
 
   default_node_pool {
-    name       = "default"
-    node_count = var.node_count
-    vm_size    = var.vm_size
+    name           = "default"
+    node_count     = var.node_count
+    vm_size        = var.vm_size
+    vnet_subnet_id = var.aks_subnet_id
   }
 
   identity {
@@ -43,6 +44,15 @@ resource "azurerm_kubernetes_cluster" "main" {
   # Enable workload identity and OIDC issuer
   oidc_issuer_enabled       = var.enable_oidc_issuer
   workload_identity_enabled = var.enable_workload_identity
+
+  # Network configuration for private endpoints
+  network_profile {
+    network_plugin      = "azure"
+    network_plugin_mode = "overlay"
+    dns_service_ip      = "10.2.0.10"
+    service_cidr        = "10.2.0.0/24"
+    pod_cidr            = "10.244.0.0/16"
+  }
 
   tags = var.tags
 }

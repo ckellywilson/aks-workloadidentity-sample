@@ -34,3 +34,13 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "vnet_id" {
+  description = "ID of the virtual network for private endpoint"
+  type        = string
+}
+
+variable "private_endpoint_subnet_id" {
+  description = "ID of the subnet for private endpoints"
+  type        = string
+}

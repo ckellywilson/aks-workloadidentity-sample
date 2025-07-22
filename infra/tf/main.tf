@@ -175,17 +175,31 @@ resource "azurerm_resource_group" "main" {
   tags     = local.common_tags
 }
 
+# Network Module
+module "network" {
+  source = "./modules/network"
+
+  resource_group_name                       = azurerm_resource_group.main.name
+  location                                  = azurerm_resource_group.main.location
+  vnet_name                                 = local.naming.virtual_network
+  aks_subnet_name                           = local.naming.subnet
+  private_endpoint_subnet_name              = "${local.naming.subnet}-pe"
+  tags                                      = local.common_tags
+}
+
 # Storage Account Module
 module "storage" {
   source = "./modules/storage"
 
-  resource_group_name      = azurerm_resource_group.main.name
-  location                 = azurerm_resource_group.main.location
-  environment              = var.environment
-  project_name             = var.project_name
-  storage_account_name     = local.naming.storage_account
-  app_data_container_name  = local.naming.app_data_container
-  tags                     = local.common_tags
+  resource_group_name         = azurerm_resource_group.main.name
+  location                    = azurerm_resource_group.main.location
+  environment                 = var.environment
+  project_name                = var.project_name
+  storage_account_name        = local.naming.storage_account
+  app_data_container_name     = local.naming.app_data_container
+  vnet_id                     = module.network.vnet_id
+  private_endpoint_subnet_id  = module.network.private_endpoint_subnet_id
+  tags                        = local.common_tags
 }
 
 # Container Registry Module
@@ -236,6 +250,9 @@ module "aks" {
 
   # Container Registry
   container_registry_id = module.container_registry.registry_id
+
+  # Network Configuration
+  aks_subnet_id = module.network.aks_subnet_id
 
   # Security Configuration
   enable_azure_rbac        = var.enable_azure_rbac
