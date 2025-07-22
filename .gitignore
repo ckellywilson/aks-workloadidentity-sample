@@ -3,6 +3,7 @@ infra/tf/*.tfstate
 infra/tf/*.tfstate.*
 infra/tf/*.tfvars.backup
 infra/tf/*.tfplan
+infra/tf/tfplan
 infra/tf/.terraform/
 infra/tf/.terraform.lock.hcl
 infra/tf/backend.hcl  # Contains environment-specific backend configuration

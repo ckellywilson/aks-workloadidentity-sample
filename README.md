@@ -1,103 +1,195 @@
 # AKS Workload Identity Sample
 
-This repository provides## 📚 Documentation
+A production-ready Terraform configuration for deploying Azure Kubernetes Service (AKS) with Workload Identity, Azure ContainSee [AZD-QUICKSTART.md](AZD-QUICKSTART.md) for details.
 
-This repository includes comprehensive documentation to help you understand, deploy, and troubleshoot the AKS Workload Identity solution:
+## 🐛 Troubleshooting
 
-**🗂️ [Documentation Hub](docs/README.md)** - Start here for complete navigation
+### Common Issuesgistry (ACR), and private Azure Storage. The deployment follows Azure and Terraform best practices with a modular architecture.
 
-### Quick Access
-- 🔐 **[Azure AD Admin Groups](docs/azure-ad-admin-groups.md)** - Required access setup
-- 🔍 **[Azure Federated Token File](docs/azure-federated-token-file.md)** - Token mechanism deep dive  
-- 🧪 **[Examples Guide](examples/README.md)** - Test cases and validation
-- 🏗️ **[Infrastructure Guide](infra/tf/modules/README.md)** - Architecture details
+## 🚀 One-Command Deployment
 
-> 💡 **Detailed guide**: [Azure AD Admin Groups Configuration](docs/azure-ad-admin-groups.md)a production-ready Terraform configuration for deploying Azure Kubernetes Service (AKS) with Workload Identity, Azure Container Registry (ACR), and Azure Storage. The deployment follows Azure and Terraform best practices with a modular architecture.
+Deploy a complete AKS cluster with workload identity in under 5 minutes:
 
-## 🚀 Quick Start
-
-### Option 1: Clone and Deploy (Fastest)
 ```bash
 git clone <repository-url>
 cd aks-workloadidentity-sample
-cd infra/tf
-
-# Configure your deployment
-cp terraform.tfvars.example terraform.tfvars
-vim terraform.tfvars  # Add your Azure AD group Object IDs
-
-# Deploy
-./deploy.sh
+./deploy-now.sh
 ```
 
-### Option 2: Generate with GitHub Copilot (Learning)
-1. Use the prompt from [`.copilot/prompts.md`](.copilot/prompts.md) 
-2. Generate infrastructure from scratch
-3. Customize for your needs
-
-### Option 3: Quick Navigation
-```bash
-./start.sh  # Helper script to navigate and show next steps
-```
-
-## 🔐 Configure Admin Access (Required)
-
-**Before deploying**, configure Azure AD groups for cluster admin access:
-
-1. **Find your Azure AD group Object ID**:
-   ```bash
-   # Azure CLI
-   az ad group show --group "AKS-Admins" --query id --output tsv
-   
-   # PowerShell  
-   (Get-AzADGroup -DisplayName "AKS-Admins").Id
-   ```
-
-2. **Add to `infra/tf/terraform.tfvars`**:
-   ```hcl
-   admin_group_object_ids = [
-     "12345678-1234-1234-1234-123456789012"  # Replace with your group Object ID
-   ]
-   ```
-
-3. **Deploy and test**:
-   ```bash
-   cd infra/tf && ./deploy.sh
-   kubectl get nodes  # Should work for group members
-   ```
-
-> � **Detailed guide**: [Azure AD Admin Groups Configuration](docs/azure-ad-admin-groups.md)
-
-## 🏗️ Architecture Overview
-
-This deployment creates a secure, production-ready AKS environment with:
-
-### Core Infrastructure
-- **AKS Cluster**: Azure AD integrated, workload identity enabled, local accounts disabled
-- **Azure Container Registry (ACR)**: Connected to AKS with managed identity authentication  
-- **Azure Storage Account**: For Terraform state and application data
-- **Resource Group**: Contains all resources with consistent tagging
-
-### Identity and Security
-- **Azure AD Integration**: Enterprise authentication with group-based admin access
-- **Three User Assigned Managed Identities (UAMIs)**:
-  - 🔧 **Kubelet Identity**: Node operations (ACR pulls, etc.)
-  - ⚙️ **Cluster Identity**: Cluster management operations
-  - 🔐 **Workload Identity**: Pod authentication to Azure services
-- **Workload Identity**: Pods access Azure services without storing secrets
-- **Azure RBAC**: Fine-grained permissions and access control
-
-### Security Features
-✅ Azure AD-only authentication (local accounts disabled)  
-✅ Group-based admin access control  
-✅ Workload identity for secure pod authentication  
-✅ Separate managed identities (principle of least privilege)  
-✅ Azure RBAC for fine-grained permissions  
-✅ No secrets stored in cluster
+**That's it!** The script will:
+- ✅ Check prerequisites (Azure CLI, Terraform, kubectl)
+- ✅ Log you into Azure 
+- ✅ Auto-configure terraform.tfvars with your subscription
+- ✅ Fetch the latest AKS version
+- ✅ Deploy the infrastructure
+- ✅ Validate the deployment
+- ✅ Show you how to test it
 
 ## 📋 Prerequisites
 
-Before deploying, ensure you have:
+Ensure you have these tools installed:
+- **Azure CLI**: [Install guide](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+- **Terraform**: [Install guide](https://developer.hashicorp.com/terraform/downloads)  
+- **kubectl**: [Install guide](https://kubernetes.io/docs/tasks/tools/)
+
+> 💡 **In a dev container?** All tools are pre-installed! Just run `./deploy-now.sh`
+
+## 🎛️ Alternative: Step-by-Step Deployment
+
+If you prefer manual control or want to customize settings:
+
+### 1. Configure Your Deployment
+```bash
+cd infra/tf
+cp terraform.tfvars.example terraform.tfvars
+vim terraform.tfvars  # Customize your settings
+```
+
+### 2. Deploy Infrastructure
+```bash
+./deploy.sh  # Deploy everything
+./validate.sh  # Validate deployment
+```
+
+### 3. Test Workload Identity
+```bash
+kubectl apply -f examples/test-workload-identity-simple.yaml
+kubectl logs workload-identity-test-simple
+```
+
+## 🏗️ What Gets Deployed
+
+This deployment creates a secure, production-ready AKS environment:
+
+### � Security Features
+- **Azure AD Integration**: Enterprise authentication with group-based admin access
+- **Workload Identity**: Pods access Azure services without storing secrets
+- **Private Storage**: Azure Storage accessible only through private endpoints
+- **Managed Identities**: Separate identities for different purposes (principle of least privilege)
+- **No Local Accounts**: Azure AD-only authentication
+
+### 🏛️ Infrastructure Components
+- **AKS Cluster**: Azure AD integrated, workload identity enabled
+- **Azure Container Registry**: Connected with managed identity authentication
+- **Azure Storage**: Private endpoint for secure access
+- **Virtual Network**: Custom VNet with dedicated subnets for AKS and private endpoints
+- **Managed Identities**: Three separate identities for different roles
+
+### 📊 Resource Organization  
+- Consistent naming following Azure best practices
+- Comprehensive tagging for cost management
+- Modular Terraform architecture for maintainability
+
+## 🧪 Testing Your Deployment
+
+Test workload identity with these examples:
+
+```bash
+# Simple test - verify workload identity authentication
+kubectl apply -f examples/test-workload-identity-simple.yaml
+kubectl logs workload-identity-test-simple
+
+# Private storage test - verify private endpoint connectivity  
+kubectl apply -f examples/test-private-storage.yaml
+kubectl logs private-storage-test
+
+# Azure Resource Manager test - verify Azure API access
+kubectl apply -f examples/test-workload-identity-arm.yaml
+kubectl logs workload-identity-test-keyvault
+```
+
+## 🔧 Customization Options
+
+### Project Configuration
+Edit `infra/tf/terraform.tfvars` to customize:
+
+```hcl
+project_name         = "mycompany"     # Your company/project name (max 10 chars)
+environment          = "dev"          # dev, staging, prod
+location             = "East US"       # Your preferred Azure region
+kubernetes_version   = "1.33.1"       # AKS version (auto-updated)
+node_count           = 3               # Number of worker nodes
+vm_size              = "Standard_B2s"  # VM size for nodes
+```
+
+### Azure AD Admin Access
+Add Azure AD groups for cluster admin access:
+
+```hcl
+admin_group_object_ids = [
+  "12345678-1234-1234-1234-123456789012"  # Your Azure AD group Object ID
+]
+```
+
+Find group Object IDs:
+```bash
+# Azure CLI
+az ad group show --group "AKS-Admins" --query id --output tsv
+
+# PowerShell
+(Get-AzADGroup -DisplayName "AKS-Admins").Id
+```
+
+## 🧹 Cleanup
+
+Remove all deployed resources:
+
+```bash
+cd infra/tf
+./cleanup.sh
+```
+
+> ⚠️ **Warning**: This will delete all Azure resources created by the deployment
+## 📚 Additional Documentation
+
+For detailed technical information:
+
+- **� [Quick Start Guide](QUICKSTART.md)** - 5-minute deployment guide
+- **�🗂️ [Documentation Hub](docs/README.md)** - Complete technical documentation
+- **🔐 [Azure AD Admin Groups](docs/azure-ad-admin-groups.md)** - Advanced admin access configuration
+- **🔍 [Azure Federated Token File](docs/azure-federated-token-file.md)** - Workload identity deep dive
+- **🏗️ [Private Storage Architecture](docs/private-storage-architecture.md)** - Private endpoint details
+- **🧪 [Examples Guide](examples/README.md)** - Test cases and validation
+- **🏗️ [Infrastructure Guide](infra/tf/modules/README.md)** - Terraform module details
+
+## 🚀 Alternative: Azure Developer CLI
+
+For a simpler approach, you can also use Azure Developer CLI:
+
+```bash
+azd up  # One command deployment with azd
+```
+
+See [AZD-QUICKSTART.md](AZD-QUICKSTART.md) for details.
+
+## � Troubleshooting
+
+### Common Issues
+
+**"Cannot access storage account"**
+- Add your IP to the storage account firewall in Azure Portal
+- Navigate to: Storage accounts → [storage-name] → Networking → Add your IP
+
+**"Access denied to AKS cluster"**  
+- Ensure you're added to the auto-created Azure AD admin group
+- Or add your Azure AD group to `admin_group_object_ids` in terraform.tfvars
+
+**"Pod cannot access Azure services"**
+- Verify workload identity is properly configured: `kubectl describe sa workload-identity-sa`
+- Check pod has the correct label: `azure.workload.identity/use: "true"`
+
+### Get Help
+
+Run the validation script for detailed diagnostics:
+```bash
+cd infra/tf && ./validate.sh
+```
+
+For more help, see the [Documentation Hub](docs/README.md).
+
+---
+
+**🎯 Ready to deploy?** Run `./deploy-now.sh` for a seamless experience!
 
 - **Azure CLI** installed and configured (`az login`)
 - **Terraform** (>= 1.5) installed 
@@ -111,7 +203,7 @@ Before deploying, ensure you have:
 ```
 aks-workloadidentity-sample/
 ├── 📖 README.md                    # This comprehensive guide
-├── � NAMING.md                    # Resource naming conventions (quick reference)
+├── 📝 NAMING.md                    # Resource naming conventions (quick reference)
 ├── 🚀 start.sh                     # Navigation helper script
 ├── 📁 .copilot/                    # Development and AI instructions
 │   ├── prompts.md                  # GitHub Copilot development guide

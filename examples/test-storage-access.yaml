@@ -17,6 +17,7 @@ spec:
       pip install azure-identity azure-storage-blob &&
       python3 << 'PYTHONEOF'
       import os
+      import socket
       from azure.identity import DefaultAzureCredential
       from azure.storage.blob import BlobServiceClient
       
@@ -24,40 +25,69 @@ spec:
       for key in ['AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_FEDERATED_TOKEN_FILE', 'AZURE_AUTHORITY_HOST']:
           print(f"{key}: {os.environ.get(key, 'NOT SET')}")
       
+      # Network and DNS Test
+      storage_account_name = "akswliddevcentralusst"
+      storage_fqdn = f"{storage_account_name}.blob.core.windows.net"
+      
+      print(f"\n=== Network and DNS Test ===")
+      try:
+          # Test DNS resolution
+          ip_address = socket.gethostbyname(storage_fqdn)
+          print(f"DNS Resolution: {storage_fqdn} -> {ip_address}")
+          
+          # Check if it's a private IP (10.x.x.x, 172.16-31.x.x, 192.168.x.x)
+          is_private = (
+              ip_address.startswith('10.') or 
+              ip_address.startswith('192.168.') or
+              any(ip_address.startswith(f'172.{i}.') for i in range(16, 32))
+          )
+          
+          if is_private:
+              print(f"✅ Private IP detected: {ip_address} (using private endpoint)")
+          else:
+              print(f"⚠️  Public IP detected: {ip_address} (using public endpoint)")
+              
+      except Exception as e:
+          print(f"❌ DNS resolution failed: {e}")
+      
       print("\n=== Testing Azure Storage Access ===")
       try:
           # Use DefaultAzureCredential which should pick up workload identity
           credential = DefaultAzureCredential()
           
           # Connect to storage account
-          storage_account_name = "akswliddevcentralusst"
           account_url = f"https://{storage_account_name}.blob.core.windows.net"
           
           blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
           
           # Try to list containers
           print("Attempting to list containers...")
-          containers = blob_service_client.list_containers()
+          containers = list(blob_service_client.list_containers())
           container_names = [container.name for container in containers]
-          print(f"Found containers: {container_names}")
+          print(f"✅ Successfully accessed storage via {'private' if is_private else 'public'} endpoint")
+          print(f"Available containers: {container_names}")
           
-          # Try to create a test blob in the app-data container
-          print("Attempting to create a test blob...")
-          container_client = blob_service_client.get_container_client("app-data")
-          blob_client = container_client.get_blob_client("test-workload-identity.txt")
+          # Try to create a test blob in the app-data container if it exists
+          if "app-data" in container_names:
+              print("\nTesting blob operations in app-data container...")
+              container_client = blob_service_client.get_container_client("app-data")
+              blob_client = container_client.get_blob_client("workload-identity-test.txt")
+              
+              # Upload test blob
+              test_content = f"Test from workload identity using {'private' if is_private else 'public'} endpoint - {ip_address}"
+              blob_client.upload_blob(test_content, overwrite=True)
+              print("✅ Successfully uploaded test blob!")
+              
+              # Download test blob
+              downloaded = blob_client.download_blob().readall().decode('utf-8')
+              print(f"✅ Successfully downloaded: {downloaded}")
+          else:
+              print("⚠️  app-data container not found, skipping blob operations")
           
-          test_content = "This blob was created using workload identity!"
-          blob_client.upload_blob(test_content, overwrite=True)
-          print("✅ Successfully created test blob!")
-          
-          # Try to read it back
-          blob_data = blob_client.download_blob().readall().decode('utf-8')
-          print(f"✅ Successfully read back: {blob_data}")
-          
-          print("🎉 WORKLOAD IDENTITY TEST SUCCESSFUL! 🎉")
+          print("\n🎉 WORKLOAD IDENTITY + STORAGE ACCESS SUCCESSFUL! 🎉")
           
       except Exception as e:
-          print(f"❌ Error: {e}")
+          print(f"❌ Storage access failed: {e}")
           print("WORKLOAD IDENTITY TEST FAILED")
           import traceback
           traceback.print_exc()

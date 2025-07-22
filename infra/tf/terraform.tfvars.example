@@ -1,8 +1,11 @@
 # Environment-specific variable values
+# Copy this file to terraform.tfvars and customize with your values
+# Current subscription and latest AKS version populated automatically via Azure MCP server
+
 project_name         = "akswlid"
 environment          = "dev"
 location             = "centralus"
-kubernetes_version   = "1.30.12"
+kubernetes_version   = "1.33.1"
 subscription_id      = "f8a5f387-2f0b-42f5-b71f-5ee02b8967cf"
 node_count           = 3
 vm_size              = "Standard_B2s"

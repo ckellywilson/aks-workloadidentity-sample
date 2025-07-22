@@ -7,7 +7,9 @@ Welcome to the AKS Workload Identity Sample documentation! This index provides a
 | Document | Description | Audience |
 |----------|-------------|----------|
 | [README.md](../README.md) | **Main project documentation** - Start here for complete setup guide | All users |
-| [CUSTOMER_GUIDE.md](../CUSTOMER_GUIDE.md) | Customer-facing deployment guide | End users |
+| File | Purpose | Audience |
+|------|---------|----------|
+| [QUICKSTART.md](../QUICKSTART.md) | 5-minute deployment guide | End users |
 | [start.sh](../start.sh) | Interactive navigation script | All users |
 
 ## 🔐 Security & Access Control
@@ -91,7 +93,7 @@ For extending and modifying the solution:
 ```
 📁 Repository Root
 ├── 📄 README.md (main documentation)
-├── 📄 CUSTOMER_GUIDE.md (customer-facing)
+├── 📄 QUICKSTART.md (5-minute deployment guide)
 ├── 📄 NAMING.md (naming conventions)
 ├── 📁 docs/ (detailed technical documentation)
 ├── 📁 .copilot/ (development & automation guides)
