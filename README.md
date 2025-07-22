@@ -149,6 +149,7 @@ For detailed technical information:
 - **🔐 [Azure AD Admin Groups](docs/azure-ad-admin-groups.md)** - Advanced admin access configuration
 - **🔍 [Azure Federated Token File](docs/azure-federated-token-file.md)** - Workload identity deep dive
 - **🏗️ [Private Storage Architecture](docs/private-storage-architecture.md)** - Private endpoint details
+- **🌐 [Network Workflow](docs/network-workflow.md)** - **Detailed pod-to-storage network flow analysis**
 - **🧪 [Examples Guide](examples/README.md)** - Test cases and validation
 - **🏗️ [Infrastructure Guide](infra/tf/modules/README.md)** - Terraform module details
 

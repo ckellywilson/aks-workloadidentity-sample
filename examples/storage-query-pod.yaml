@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: storage-query
+  labels:
+    azure.workload.identity/use: "true"
+spec:
+  serviceAccountName: workload-identity-sa
+  containers:
+  - name: storage-query
+    image: python:3.9-slim
+    command: ["/bin/bash"]
+    args: ["-c", "pip install azure-identity azure-storage-blob && python3 /scripts/query_storage.py && sleep 10"]
+    volumeMounts:
+    - name: script-volume
+      mountPath: /scripts
+  volumes:
+  - name: script-volume
+    configMap:
+      name: storage-query-script
+  restartPolicy: Never

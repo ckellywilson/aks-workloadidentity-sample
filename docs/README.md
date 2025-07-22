@@ -24,6 +24,8 @@ Welcome to the AKS Workload Identity Sample documentation! This index provides a
 | Document | Description | Audience |
 |----------|-------------|----------|
 | [NAMING.md](../NAMING.md) | Azure resource naming conventions | Developers & operators |
+| [Network Workflow](network-workflow.md) | **Detailed network flow analysis** - Pod to private storage traffic | Network engineers & troubleshooting |
+| [Private Storage Architecture](private-storage-architecture.md) | Private endpoint design and security | Infrastructure engineers |
 | [Terraform Modules](../infra/tf/modules/README.md) | Infrastructure module documentation | Infrastructure engineers |
 
 ## 🧪 Examples & Testing

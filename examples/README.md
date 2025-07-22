@@ -16,6 +16,15 @@ This directory contains practical examples and test cases for validating your AK
 |------|---------|----------|
 | [test-storage-access.yaml](test-storage-access.yaml) | Test Azure Storage connectivity with workload identity | Validation & debugging |
 | [inspect-token.yaml](inspect-token.yaml) | Analyze federated token structure and environment | Token inspection & troubleshooting |
+| [storage-query-configmap.yaml](storage-query-configmap.yaml) | ConfigMap with Python script to query storage containers and blobs | Storage content inspection |
+| [storage-query-pod.yaml](storage-query-pod.yaml) | Pod that uses the configmap to query storage account contents | Production-ready storage querying |
+| [network-workflow-simple-validation.yaml](network-workflow-simple-validation.yaml) | **Network workflow validation** - Validates DNS, connectivity, and tokens | Network troubleshooting & validation |
+
+### 🌐 Network Workflow Validation
+
+| File | Purpose | Description |
+|------|---------|-------------|
+| [network-workflow-simple-validation.yaml](network-workflow-simple-validation.yaml) | Network flow validation | Tests DNS resolution, HTTPS connectivity, token presence, and network environment |
 
 ## 🚀 Quick Testing
 
@@ -41,11 +50,50 @@ kubectl wait --for=condition=complete job/token-inspector --timeout=60s
 kubectl logs job/token-inspector
 ```
 
-### 3. Cleanup
+### 3. Storage Content Query
 ```bash
-# Remove test pods
+# Deploy the configmap with the Python script
+kubectl apply -f storage-query-configmap.yaml
+
+# Deploy the storage query pod
+kubectl apply -f storage-query-pod.yaml
+
+# Wait for pod to complete and view results
+kubectl wait --for=condition=Ready pod/storage-query --timeout=60s
+kubectl logs storage-query
+
+# Alternative: Follow logs in real-time
+kubectl logs -f storage-query
+```
+
+### 4. Network Workflow Validation
+```bash
+# Create required ConfigMap (if not already present)
+kubectl create configmap storage-query-config --from-literal=storage-account-name=<your-storage-account-name>
+
+# Deploy network validation pod
+kubectl apply -f network-workflow-simple-validation.yaml
+
+# Wait for completion and view results
+kubectl wait --for=condition=Ready pod/network-workflow-simple-validation --timeout=60s || kubectl get pod network-workflow-simple-validation
+kubectl logs network-workflow-simple-validation
+
+# Expected output shows:
+# ✅ DNS resolves to private IP (10.x.x.x) 
+# ✅ HTTPS connectivity successful
+# ✅ Federated token file exists
+# ✅ Network environment details
+```
+
+### 5. Cleanup
+```bash
+# Remove test pods and configmaps
 kubectl delete -f test-storage-access.yaml
 kubectl delete -f inspect-token.yaml
+kubectl delete -f storage-query-pod.yaml
+kubectl delete -f storage-query-configmap.yaml
+kubectl delete -f network-workflow-simple-validation.yaml
+kubectl delete configmap storage-query-config
 ```
 
 ## 📖 Example Descriptions
@@ -124,6 +172,108 @@ WORKLOAD IDENTITY TEST FAILED
 - Subject identifies the Kubernetes service account
 - Rich Kubernetes context included in token
 
+### 📊 storage-query-configmap.yaml & storage-query-pod.yaml
+
+**Purpose**: Query and inspect existing data in Azure Storage containers using workload identity
+
+**What it does**:
+1. 📦 **ConfigMap**: Contains a Python script that lists containers and blobs
+2. 🔍 **Pod**: Runs the script to query storage account contents
+3. 📋 **Lists all containers** in the storage account
+4. 📄 **Shows blob details**: name, size, last modified, content type
+5. 📖 **Displays content** for small text files (< 1KB)
+
+**Expected Output (Success)**:
+```
+=== Azure Storage Query using Workload Identity ===
+Storage Account: akswliddevcentralusst
+Account URL: https://akswliddevcentralusst.blob.core.windows.net
+
+=== Listing Containers ===
+Container: app-data
+
+=== Blobs in Container: app-data ===
+  Blob: workload-identity-test.txt
+    Size: 61 bytes
+    Last Modified: 2025-07-22 04:27:44+00:00
+    Content Type: application/octet-stream
+    Content: Test from workload identity using private endpoint - 10.0.2.4
+
+✅ Storage query completed successfully!
+```
+
+**Key Features**:
+- **Production-ready script**: Robust error handling and detailed output
+- **ConfigMap pattern**: Reusable script that can be mounted in multiple pods
+- **Environment variable support**: Can override storage account name
+- **Content inspection**: Shows actual blob content for verification
+- **Private endpoint awareness**: Works seamlessly with private storage
+
+### 🌐 network-workflow-simple-validation.yaml
+
+**Purpose**: Validates the complete network workflow from Kubernetes pod to Azure Storage through private endpoints
+
+**What it does**:
+1. 🌐 **DNS Resolution Test**: Verifies storage account resolves to private IP (10.x.x.x range)
+2. 🔗 **HTTPS Connectivity Test**: Confirms network path to storage endpoint works
+3. 🎫 **Token Validation**: Checks federated token file exists and has correct format
+4. 📱 **HTTP Response Test**: Inspects actual HTTP headers from storage service
+5. 🖥️ **Network Environment**: Shows pod network configuration and DNS settings
+
+**Expected Output (Success)**:
+```
+=== Simple Network Workflow Validation Test ===
+
+1. Environment Setup:
+Storage Account: akswliddevcentralusst
+Service Account: workload-identity-sa
+Client ID: fa98300c-a162-490c-94e7-e2b69b195e77
+Tenant ID: 38c7b18a-f92a-4353-a784-df16e895da23
+Token File: /var/run/secrets/azure/tokens/azure-identity-token
+
+2. DNS Resolution Test:
+Resolving: akswliddevcentralusst.blob.core.windows.net
+akswliddevcentralusst.blob.core.windows.net canonical name = akswliddevcentralusst.privatelink.blob.core.windows.net
+Name: akswliddevcentralusst.privatelink.blob.core.windows.net
+Address: 10.0.2.4
+Resolved IP: 10.0.2.4
+✅ DNS resolves to private IP - private endpoint working
+
+3. Network Connectivity Test:
+Testing HTTPS connectivity to storage endpoint...
+✅ HTTPS connectivity successful
+
+4. HTTP Response Test:
+Testing HTTP response headers...
+HTTP/1.1 400 Value for one of the query parameters specified in the request URI is invalid.
+Transfer-Encoding: chunked
+Server: Microsoft-HTTPAPI/2.0
+
+5. Federated Token Validation:
+✅ Federated token file exists
+Token file size: 1633 bytes
+Token preview (first 50 chars):
+eyJhbGciOiJSUzI1NiIsImtpZCI6Inc0WVMtV0JQWF80ME9XMm...
+
+6. Network Environment:
+Container network info:
+eth0: <BROADCAST,UP,LOWER_UP,M-DOWN> mtu 1500
+    inet 10.244.2.167/16 scope global eth0
+
+DNS configuration:
+nameserver 10.2.0.10
+search default.svc.cluster.local svc.cluster.local cluster.local
+```
+
+**Key Validation Points**:
+- **Private DNS Resolution**: CNAME chain shows `blob.core.windows.net` → `privatelink.blob.core.windows.net`
+- **Private IP Confirmation**: Storage resolves to 10.x.x.x (private endpoint IP)
+- **Network Connectivity**: Pod can reach storage over HTTPS
+- **Token Presence**: Workload identity token properly mounted
+- **Network Configuration**: Pod network and DNS settings are correct
+
+**References the detailed documentation**: See [Network Workflow Guide](../docs/network-workflow.md) for comprehensive network flow analysis and troubleshooting.
+
 ## 🧪 Testing Scenarios
 
 ### Scenario 1: Fresh Deployment Validation
@@ -178,7 +328,27 @@ kubectl logs token-inspector | grep "exp"
 # 3. Wait 1 hour and check again (new token should be issued)
 ```
 
-### Scenario 4: Multi-Environment Testing
+### Scenario 4: Storage Content Verification
+**Goal**: Inspect what data exists in storage containers
+
+```bash
+# 1. Deploy storage query tools
+kubectl apply -f storage-query-configmap.yaml
+kubectl apply -f storage-query-pod.yaml
+
+# 2. Check results
+kubectl logs storage-query
+
+# 3. Verify specific blob content
+kubectl logs storage-query | grep -A 5 "Content:"
+
+# 4. Test with custom storage account (if different)
+# Edit the pod yaml and add environment variable:
+# - name: STORAGE_ACCOUNT_NAME
+#   value: "yourstorageaccount"
+```
+
+### Scenario 5: Multi-Environment Testing
 **Goal**: Test across different environments/namespaces
 
 ```bash
@@ -333,6 +503,7 @@ spec:
 
 ## 📚 Related Documentation
 
+- [Network Workflow](../docs/network-workflow.md) - **Pod-to-storage network flow analysis**
 - [Azure Federated Token File](../docs/azure-federated-token-file.md) - Deep dive into token mechanism
 - [Azure AD Admin Groups](../docs/azure-ad-admin-groups.md) - Access control setup
 - [Infrastructure Documentation](../infra/tf/modules/README.md) - Architecture details

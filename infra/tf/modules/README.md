@@ -434,6 +434,9 @@ terraform refresh
 ---
 
 📚 **Related Documentation**:
-- [Azure AD Admin Groups](azure-ad-admin-groups.md)
-- [Azure Federated Token File](azure-federated-token-file.md)
-- [Main README](../README.md)
+- [Network Workflow](../../docs/network-workflow.md) - **Detailed pod-to-storage network flow analysis**
+- [Private Storage Architecture](../../docs/private-storage-architecture.md) - Private endpoint design
+- [Azure AD Admin Groups](../../docs/azure-ad-admin-groups.md) - Admin access configuration
+- [Azure Federated Token File](../../docs/azure-federated-token-file.md) - Token mechanism deep dive
+- [Examples & Testing](../../examples/README.md) - Validation and troubleshooting
+- [Main README](../../README.md) - Complete project documentation

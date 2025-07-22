@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: network-workflow-simple-validation
+  namespace: default
+  labels:
+    app: network-workflow-simple-validation
+spec:
+  restartPolicy: Never
+  serviceAccountName: workload-identity-sa
+  containers:
+  - name: validation
+    image: curlimages/curl:latest
+    command: ["/bin/sh"]
+    args:
+      - -c
+      - |
+        echo "=== Simple Network Workflow Validation Test ==="
+        echo ""
+        
+        # Get storage account name from ConfigMap
+        echo "1. Environment Setup:"
+        STORAGE_ACCOUNT="$(cat /etc/config/storage-account-name)"
+        echo "Storage Account: $STORAGE_ACCOUNT"
+        echo "Service Account: workload-identity-sa"
+        echo "Client ID: $AZURE_CLIENT_ID"
+        echo "Tenant ID: $AZURE_TENANT_ID"
+        echo "Token File: $AZURE_FEDERATED_TOKEN_FILE"
+        echo ""
+        
+        # DNS Resolution Test with nslookup
+        echo "2. DNS Resolution Test:"
+        STORAGE_FQDN="${STORAGE_ACCOUNT}.blob.core.windows.net"
+        echo "Resolving: $STORAGE_FQDN"
+        nslookup $STORAGE_FQDN > /tmp/dns_result 2>&1
+        cat /tmp/dns_result
+        
+        # Extract IP and check if private
+        RESOLVED_IP=$(nslookup $STORAGE_FQDN 2>/dev/null | grep "Address:" | tail -1 | awk '{print $2}')
+        echo "Resolved IP: $RESOLVED_IP"
+        
+        # Check if IP is private (10.x.x.x, 172.16-31.x.x, 192.168.x.x)
+        if echo "$RESOLVED_IP" | grep -E '^(10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.)' > /dev/null; then
+          echo "✅ DNS resolves to private IP - private endpoint working"
+        else
+          echo "❌ DNS resolves to public IP - check private DNS zone"
+        fi
+        echo ""
+        
+        # Network Connectivity Test
+        echo "3. Network Connectivity Test:"
+        echo "Testing HTTPS connectivity to storage endpoint..."
+        if curl -s --connect-timeout 10 "https://${STORAGE_FQDN}/" > /dev/null 2>&1; then
+          echo "✅ HTTPS connectivity successful"
+        else
+          echo "❌ HTTPS connectivity failed"
+        fi
+        echo ""
+        
+        # Test HTTP response
+        echo "4. HTTP Response Test:"
+        echo "Testing HTTP response headers..."
+        curl -I "https://${STORAGE_FQDN}/" 2>/dev/null | head -5
+        echo ""
+        
+        # Token Validation
+        echo "5. Federated Token Validation:"
+        if [ -f "$AZURE_FEDERATED_TOKEN_FILE" ]; then
+          echo "✅ Federated token file exists"
+          TOKEN_SIZE=$(wc -c < "$AZURE_FEDERATED_TOKEN_FILE")
+          echo "Token file size: $TOKEN_SIZE bytes"
+          
+          # Show first and last parts of token (safely)
+          echo "Token preview (first 50 chars):"
+          head -c 50 "$AZURE_FEDERATED_TOKEN_FILE"
+          echo "..."
+        else
+          echo "❌ Federated token file not found at: $AZURE_FEDERATED_TOKEN_FILE"
+          echo "Checking token directory contents:"
+          ls -la /var/run/secrets/azure/tokens/ 2>/dev/null || echo "Token directory not found"
+        fi
+        echo ""
+        
+        echo "6. Network Environment:"
+        echo "Container network info:"
+        ip addr show eth0 2>/dev/null || echo "eth0 interface not found"
+        echo ""
+        echo "DNS configuration:"
+        cat /etc/resolv.conf
+        echo ""
+        
+        echo "=== Simple Network Workflow Validation Complete ==="
+    env:
+    - name: AZURE_CLIENT_ID
+      value: "fa98300c-a162-490c-94e7-e2b69b195e77"
+    - name: AZURE_TENANT_ID
+      value: "38c7b18a-f92a-4353-a784-df16e895da23"
+    - name: AZURE_FEDERATED_TOKEN_FILE
+      value: "/var/run/secrets/azure/tokens/azure-identity-token"
+    volumeMounts:
+    - name: azure-identity-token
+      mountPath: /var/run/secrets/azure/tokens
+      readOnly: true
+    - name: storage-config
+      mountPath: /etc/config
+      readOnly: true
+  volumes:
+  - name: azure-identity-token
+    projected:
+      sources:
+      - serviceAccountToken:
+          path: azure-identity-token
+          audience: api://AzureADTokenExchange
+          expirationSeconds: 3600
+  - name: storage-config
+    configMap:
+      name: storage-query-config

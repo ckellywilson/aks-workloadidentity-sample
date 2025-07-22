@@ -25,9 +25,6 @@
                 "server",
                 "start"
             ]
-        },
-        "AKS MCP Server": {
-            "command": "/workspaces/aks-workloadidentity-sample/binaries/aks-mcp-linux-arm64"
         }
     }
 }

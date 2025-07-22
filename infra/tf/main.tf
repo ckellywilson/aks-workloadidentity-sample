@@ -45,7 +45,7 @@ provider "azurerm" {
 provider "azuread" {}
 
 # Kubernetes provider configuration
-# Uses local kubeconfig file which will be configured by the deployment script
+# Uses kubeconfig file configured by az aks get-credentials
 provider "kubernetes" {
   config_path = "~/.kube/config"
 }
@@ -272,9 +272,8 @@ resource "azurerm_role_assignment" "workload_identity_storage_contributor" {
 }
 
 # Workload Identity Configuration Module
-# Only deployed when deploy_kubernetes_resources is true (after AKS cluster exists)
+# Depends on AKS cluster existing for Kubernetes resources
 module "workload_identity" {
-  count  = var.deploy_kubernetes_resources ? 1 : 0
   source = "./modules/workload_identity"
 
   resource_group_name            = azurerm_resource_group.main.name
