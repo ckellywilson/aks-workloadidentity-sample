@@ -13,7 +13,7 @@
 			"installKubernetesCLI": true,
 			"installHelm": true
 		},
-		"ghcr.io/devcontainers/features/docker-in-docker:2.12.2": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2.12.4": {
 			"dockerComposeFile": "docker-compose.yml",
 			"dockerComposeService": "app",
 			"dockerComposeRemoveVolumes": true
